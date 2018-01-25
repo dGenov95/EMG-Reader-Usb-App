@@ -157,7 +157,7 @@ public class MainActivity extends Activity implements View.OnClickListener{
     private void stopConnection(){
         setUiEnabled(false);
         mSerialPort.close();
-        appendText(mInfoTxt,"\nSerial Connection Closed! \n");
+        mInfoTxt.setText("Serial Connection Closed!");
     }
 
     private void clearDataText(){
