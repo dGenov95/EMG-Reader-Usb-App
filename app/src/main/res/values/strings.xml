@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">UsbTestApp</string>
+    <string name="app_name">EMG Tracker</string>
     <string name="begin">Begin</string>
     <string name="stop">Stop</string>
     <string name="clear">Clear</string>
