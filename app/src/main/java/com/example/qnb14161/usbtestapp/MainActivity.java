@@ -2,41 +2,37 @@ package com.example.qnb14161.usbtestapp;
 
 import android.app.Activity;
 import android.app.PendingIntent;
-import android.content.BroadcastReceiver;
-import android.content.Context;
-import android.content.Intent;
-import android.content.IntentFilter;
-import android.hardware.usb.UsbDevice;
-import android.hardware.usb.UsbDeviceConnection;
-import android.hardware.usb.UsbManager;
+import android.content.*;
+import android.hardware.usb.*;
 import android.os.Bundle;
-import android.text.method.ScrollingMovementMethod;
 import android.util.Log;
 import android.view.View;
-import android.widget.Button;
-import android.widget.TextView;
+import android.widget.*;
 
-import com.felhr.usbserial.UsbSerialDevice;
-import com.felhr.usbserial.UsbSerialInterface;
+import com.felhr.usbserial.*;
 
 import java.io.UnsupportedEncodingException;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 public class MainActivity extends Activity implements View.OnClickListener{
 
     public final String ACTION_USB_PERMISSION = "com.example.qnb14161.usbtestapp.USB_PERMISSION";
     //Declare widgets variables
-    Button mStartBtn,mStopBtn,mClearBtn;
-    TextView mInfoTxt,mDataTxt;
+    private Button mStartBtn,mStopBtn,mClearBtn;
+    private TextView mInfoTxt,mDataTxt;
     //Declare USB elements
-    UsbDevice mDevice;
-    UsbManager mUsbManager;
-    UsbSerialDevice mSerialPort;
-    UsbDeviceConnection mConnection;
+    private UsbDevice mDevice;
+    private UsbManager mUsbManager;
+    private UsbSerialDevice mSerialPort;
+    private UsbDeviceConnection mConnection;
 
-    //A callback to read serial data from the USB asynchronously
-    UsbSerialInterface.UsbReadCallback mCallback = new UsbSerialInterface.UsbReadCallback() { //Defining a Callback which triggers whenever data is read.
+    /**
+     * A callback function, used to read data received from the serial port.
+     * onReceivedData is invoked whenever new data is available on the port.
+     * Since the data is received in raw byte format, it is first encoded to UTF-8
+     * and then used accordingly
+     */
+    UsbSerialInterface.UsbReadCallback mCallback = new UsbSerialInterface.UsbReadCallback() {
         @Override
         public void onReceivedData(byte[] arg0) {
             String data = null;
@@ -44,7 +40,7 @@ public class MainActivity extends Activity implements View.OnClickListener{
                 data = new String(arg0, "UTF-8");
                 data.concat("\n");
                 //Constantly update the text contents of the data text view
-                appendText(mDataTxt,data);
+                updateText(mDataTxt,data);
             } catch (UnsupportedEncodingException e) {
                 e.printStackTrace();
             }
@@ -53,7 +49,11 @@ public class MainActivity extends Activity implements View.OnClickListener{
         }
     };
 
-    //The BroadcastReceiver to receive the broadcast to ask for user permission and start/stop connection automatically
+    /**
+     * This broadcast receiver is used to ask for a user permission to accept the found USB device.
+     * If permission is granted, a new serial port connection is opened and set up.
+     * Finally, the incoming data is read with the use of a callback function passed as an argument.
+     */
     private final BroadcastReceiver broadcastReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -75,7 +75,7 @@ public class MainActivity extends Activity implements View.OnClickListener{
                             mSerialPort.setFlowControl(UsbSerialInterface.FLOW_CONTROL_OFF);
                             //Read the Serial data with the callback function
                             mSerialPort.read(mCallback);
-                            appendText(mInfoTxt,"Serial Port Opened\n");
+                            updateText(mInfoTxt,"Serial Port Opened\n");
                         }else{
                             Log.d("SERIAL","PORT COULDNT OPEN");
                         }
@@ -96,16 +96,7 @@ public class MainActivity extends Activity implements View.OnClickListener{
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        mStartBtn = (Button) findViewById(R.id.beginBtn);
-        mStopBtn = (Button) findViewById(R.id.stopBtn);
-        mClearBtn = (Button) findViewById(R.id.clearBtn);
-        mInfoTxt = (TextView) findViewById(R.id.infoTxt);
-        mDataTxt = (TextView) findViewById(R.id.dataTxt);
-        mDataTxt.setMovementMethod(new ScrollingMovementMethod());
-        mStartBtn.setOnClickListener(this);
-        mStopBtn.setOnClickListener(this);
-        mClearBtn.setOnClickListener(this);
-        mUsbManager = (UsbManager) getSystemService(Context.USB_SERVICE);
+        initialize();
         setUiEnabled(false);
         IntentFilter filter = new IntentFilter();
         filter.addAction(ACTION_USB_PERMISSION);
@@ -118,6 +109,7 @@ public class MainActivity extends Activity implements View.OnClickListener{
 
     @Override
     public void onClick(View view) {
+        //Check which button is clicked
         if(view.getId() == mStartBtn.getId()){
             beginConnection();
         }
@@ -129,14 +121,20 @@ public class MainActivity extends Activity implements View.OnClickListener{
         }
     }
 
+    /**
+     * When called, this method looks for any connected devices
+     * If such are found, it compares the vendorID of each of them to that of the TinyDuino (1024),
+     * and if the two are matching, it requests user permission to use the device
+     */
     private void beginConnection(){
+        int tinyDuinoVendorId = 1027;
         HashMap<String,UsbDevice> devicesList = mUsbManager.getDeviceList();
         if(!devicesList.isEmpty()){
             boolean keep = true;
             for (Map.Entry<String, UsbDevice> entry : devicesList.entrySet()) {
                 mDevice = entry.getValue();
                 int deviceVID = mDevice.getVendorId();
-                if (deviceVID == 1027){
+                if (deviceVID == tinyDuinoVendorId){
                     PendingIntent pi = PendingIntent.getBroadcast(this, 0, new Intent(ACTION_USB_PERMISSION), 0);
                     mUsbManager.requestPermission(mDevice, pi);
                     keep = false;
@@ -149,28 +147,46 @@ public class MainActivity extends Activity implements View.OnClickListener{
                     break;
             }
         }else{
-            mInfoTxt.setText("No device attached");
+            updateText(mInfoTxt,"No Device Attached");
             Log.d("beginConnection()", " DEVICE LIST IS EMPTY");
         }
     }
 
+    /**
+     * The method closes the serial port and disables the UI elements
+     */
     private void stopConnection(){
         setUiEnabled(false);
         mSerialPort.close();
-        mInfoTxt.setText("Serial Connection Closed!");
+        updateText(mInfoTxt,"Connection Stopped");
     }
 
+    /**
+     * This method is used to clear the sensor data shown on the screen
+     */
     private void clearDataText(){
-        mDataTxt.setText("");
+        updateText(mDataTxt,"");
     }
 
+    /**
+     * This method enables/disables the buttons showing on the screen.
+     *
+     * @param status - the status variable to which the buttons are set
+     */
     private void setUiEnabled(boolean status){
         mStartBtn.setEnabled(!status);
         mStopBtn.setEnabled(status);
         mInfoTxt.setEnabled(status);
     }
 
-    private void appendText(TextView textView, final CharSequence text){
+    /**
+     * This method updates the text of a text view. Since the serial data reading is done in the
+     * background, not affecting the main UI thread, the runOnUiThread method is called, so that
+     * whenever new data is received, the text view is updated.
+     * @param textView - the particular textView element to be updated
+     * @param text - the character sequence to be attached on the textView
+     */
+    private void updateText(TextView textView, final CharSequence text){
         final TextView fTextView = textView;
         final CharSequence fText = text;
 
@@ -180,6 +196,22 @@ public class MainActivity extends Activity implements View.OnClickListener{
                 fTextView.setText(fText);
             }
         });
+    }
+
+    /**
+     * A helper function to initialize the widgets and other variables.
+     * Keeps the onCreate method short.
+     */
+    private void initialize(){
+        mStartBtn = (Button) findViewById(R.id.beginBtn);
+        mStopBtn = (Button) findViewById(R.id.stopBtn);
+        mClearBtn = (Button) findViewById(R.id.clearBtn);
+        mInfoTxt = (TextView) findViewById(R.id.infoTxt);
+        mDataTxt = (TextView) findViewById(R.id.dataTxt);
+        mStartBtn.setOnClickListener(this);
+        mStopBtn.setOnClickListener(this);
+        mClearBtn.setOnClickListener(this);
+        mUsbManager = (UsbManager) getSystemService(Context.USB_SERVICE);
     }
 
 
