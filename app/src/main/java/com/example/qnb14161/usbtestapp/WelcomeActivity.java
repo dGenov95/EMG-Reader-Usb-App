@@ -18,6 +18,5 @@ public class WelcomeActivity extends Activity {
         startActivity(intent);
         SystemClock.sleep(1000);
         finish();
-
     }
 }
