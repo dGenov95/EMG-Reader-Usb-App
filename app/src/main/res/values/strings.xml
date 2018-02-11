@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">UsbTestApp</string>
+    <string name="start">Start</string>
+    <string name="file_name">Save file to...</string>
+</resources>
