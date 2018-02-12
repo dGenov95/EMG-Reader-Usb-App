@@ -29,7 +29,6 @@ public class MainActivity extends AppCompatActivity {
     private UsbService usbService;
     private TextView display;
     private EditText fileNameText;
-    private Button startButton;
     private MyHandler mHandler;
 
     /**
@@ -87,8 +86,6 @@ public class MainActivity extends AppCompatActivity {
         //Initialize the widgets
         fileNameText = (EditText) findViewById(R.id.fileNameView);
         display = (TextView) findViewById(R.id.data);
-        startButton = (Button) findViewById(R.id.startButton);
-
 
     }
 
@@ -108,9 +105,14 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * This method is called when the start button is pressed. It checks whether the EditText
+     * has any text inside it. If it does, it adds a .txt extension to it, adds it to a Bundle
+     * and starts the service, with this bundle passed as an argument.
+     */
     public void onClickStart(View view){
         String fileName = fileNameText.getText().toString();
-        if(fileName.isEmpty() || fileName.equals("") || !fileName.contains(".txt")){
+        if(fileName.isEmpty() || fileName.equals("")){
             AlertDialog alertDialog = new AlertDialog.Builder(MainActivity.this).create();
             alertDialog.setTitle("Oops");
             alertDialog.setMessage("Please eneter a name for the file to save sensor data to.");
@@ -122,6 +124,8 @@ public class MainActivity extends AppCompatActivity {
                     });
             alertDialog.show();
         }else{
+            fileName.trim();
+            fileName += ".txt";
             Bundle fileNameExtra = new Bundle();
             fileNameExtra.putString("file_name",fileName);
             Log.d("onClick bundle",fileNameExtra.getString("file_name"));

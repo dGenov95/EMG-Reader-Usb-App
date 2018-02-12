@@ -34,7 +34,6 @@ public class UsbService extends Service {
     public static boolean SERVICE_CONNECTED = false;
     private static final int TINY_DUINO_VID = 1027;
 
-    private String fileName;
     private IBinder binder = new UsbBinder();
 
     private Context context;
@@ -122,11 +121,17 @@ public class UsbService extends Service {
         return binder;
     }
 
+    /**
+     * This method is called when the service is started. It checks if any extra has been added
+     * to indicate a file name to which to write usb data to, it creates an instance of the
+     * SensorDataWriter and passes the file name to it.
+     */
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        fileName = intent.getStringExtra("file_name");
-        Log.d("onStartCommand extra", fileName);
-        mDataWriter = new SensorDataWriter(fileName);
+        if(intent.hasExtra("file_name")){
+            String fileName = intent.getStringExtra("file_name");
+            mDataWriter = new SensorDataWriter(fileName);
+        }
 
         return Service.START_NOT_STICKY;
     }
@@ -146,7 +151,12 @@ public class UsbService extends Service {
         this.mHandler = mHandler;
     }
 
-
+    /**
+     * This method gets all the devices connected to the device and checks the vendor ID of each one.
+     * It is looking for the particular Tiny Duino vendor ID, and once it finds it, it asks the user
+     * for permission to use the device. If no such device was found, an intent indicating that is
+     * sent.
+     */
     private void findSerialPortDevice() {
         // This snippet will try to open the first encountered usb device connected, excluding usb root hubs
         HashMap<String, UsbDevice> usbDevices = usbManager.getDeviceList();
