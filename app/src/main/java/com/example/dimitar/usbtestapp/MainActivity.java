@@ -62,15 +62,13 @@ public class MainActivity extends AppCompatActivity {
     /**
      * The service connection object will form the connection between the activity and the UsbService
      * It will call the onBind method and receives the IBinder object returned from it as arg1.
-     * Then the usbService reference is cast from the Binder class's getService method.
+     * Then the usbService reference is cast from the Binder class's getUsbService method.
      */
     private final ServiceConnection usbConnection = new ServiceConnection() {
         @Override
         public void onServiceConnected(ComponentName arg0, IBinder arg1) {
-            usbService = ((UsbService.UsbBinder) arg1).getService();
+            usbService = ((UsbService.UsbBinder) arg1).getUsbService();
             usbService.setHandler(mHandler);
-            //usbService.setFileName(fileNameText.getText().toString());
-
         }
 
         @Override
@@ -98,33 +96,37 @@ public class MainActivity extends AppCompatActivity {
     public void onResume() {
         super.onResume();
         setFilters();  // Start listening notifications from UsbService
-        startService(UsbService.class, usbConnection, null); // Start UsbService(if it was not started before) and Bind it
     }
 
     @Override
     public void onPause() {
         super.onPause();
-        unregisterReceiver(mUsbReceiver);
-        unbindService(usbConnection);
+
+        if(UsbService.SERVICE_CONNECTED){
+            unregisterReceiver(mUsbReceiver);
+            unbindService(usbConnection);
+        }
     }
 
     public void onClickStart(View view){
-//        String fileName = fileNameText.getText().toString();
-//        if(fileName.isEmpty() || fileName.equals("")){
-//            AlertDialog alertDialog = new AlertDialog.Builder(MainActivity.this).create();
-//            alertDialog.setTitle("Oops");
-//            alertDialog.setMessage("Please eneter a name for the file to save sensor data to.");
-//            alertDialog.setButton(AlertDialog.BUTTON_NEUTRAL, "OK",
-//                    new DialogInterface.OnClickListener() {
-//                        public void onClick(DialogInterface dialog, int which) {
-//                            dialog.dismiss();
-//                        }
-//                    });
-//            alertDialog.show();
-//        }else{
-//            Log.d("onClick",fileName);
-//            startService(UsbService.class, usbConnection, null); // Start UsbService(if it was not started before) and Bind it
-//        }
+        String fileName = fileNameText.getText().toString();
+        if(fileName.isEmpty() || fileName.equals("") || !fileName.contains(".txt")){
+            AlertDialog alertDialog = new AlertDialog.Builder(MainActivity.this).create();
+            alertDialog.setTitle("Oops");
+            alertDialog.setMessage("Please eneter a name for the file to save sensor data to.");
+            alertDialog.setButton(AlertDialog.BUTTON_NEUTRAL, "OK",
+                    new DialogInterface.OnClickListener() {
+                        public void onClick(DialogInterface dialog, int which) {
+                            dialog.dismiss();
+                        }
+                    });
+            alertDialog.show();
+        }else{
+            Bundle fileNameExtra = new Bundle();
+            fileNameExtra.putString("file_name",fileName);
+            Log.d("onClick bundle",fileNameExtra.getString("file_name"));
+            startService(UsbService.class, usbConnection, fileNameExtra); // Start UsbService(if it was not started before) and Bind it
+        }
     }
 
 

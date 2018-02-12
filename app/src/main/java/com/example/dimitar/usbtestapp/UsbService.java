@@ -32,6 +32,7 @@ public class UsbService extends Service {
     private static final String ACTION_USB_PERMISSION = "com.android.example.USB_PERMISSION";
     private static final int BAUD_RATE = 9600; // BaudRate. Change this value if you need
     public static boolean SERVICE_CONNECTED = false;
+    private static final int TINY_DUINO_VID = 1027;
 
     private String fileName;
     private IBinder binder = new UsbBinder();
@@ -72,27 +73,27 @@ public class UsbService extends Service {
      */
     private final BroadcastReceiver usbReceiver = new BroadcastReceiver() {
         @Override
-        public void onReceive(Context arg0, Intent arg1) {
-            if (arg1.getAction().equals(ACTION_USB_PERMISSION)) {
-                boolean granted = arg1.getExtras().getBoolean(UsbManager.EXTRA_PERMISSION_GRANTED);
+        public void onReceive(Context ctx, Intent intent) {
+            if (intent.getAction().equals(ACTION_USB_PERMISSION)) {
+                boolean granted = intent.getExtras().getBoolean(UsbManager.EXTRA_PERMISSION_GRANTED);
                 if (granted) // User accepted our USB connection. Try to open the device as a serial port
                 {
-                    Intent intent = new Intent(ACTION_USB_PERMISSION_GRANTED);
-                    arg0.sendBroadcast(intent);
+                    Intent acceptedIntent = new Intent(ACTION_USB_PERMISSION_GRANTED);
+                    ctx.sendBroadcast(acceptedIntent);
                     connection = usbManager.openDevice(device);
                     new ConnectionThread().start();
                 } else // User not accepted our USB connection. Send an Intent to the Main Activity
                 {
-                    Intent intent = new Intent(ACTION_USB_PERMISSION_NOT_GRANTED);
-                    arg0.sendBroadcast(intent);
+                    Intent rejectedIntent = new Intent(ACTION_USB_PERMISSION_NOT_GRANTED);
+                    ctx.sendBroadcast(rejectedIntent);
                 }
-            } else if (arg1.getAction().equals(ACTION_USB_ATTACHED)) {
+            } else if (intent.getAction().equals(ACTION_USB_ATTACHED)) {
                 if (!serialPortConnected)
                     findSerialPortDevice(); // A USB device has been attached. Try to open it as a Serial port
-            } else if (arg1.getAction().equals(ACTION_USB_DETACHED)) {
+            } else if (intent.getAction().equals(ACTION_USB_DETACHED)) {
                 // Usb device was disconnected. send an intent to the Main Activity
-                Intent intent = new Intent(ACTION_USB_DISCONNECTED);
-                arg0.sendBroadcast(intent);
+                Intent disconnectedIntent = new Intent(ACTION_USB_DISCONNECTED);
+                ctx.sendBroadcast(disconnectedIntent);
                 if (serialPortConnected) {
                     serialPort.close();
                 }
@@ -110,9 +111,8 @@ public class UsbService extends Service {
         this.context = this;
         serialPortConnected = false;
         UsbService.SERVICE_CONNECTED = true;
-        setFilter();
+        setIntentFilters();
         usbManager = (UsbManager) getSystemService(Context.USB_SERVICE);
-        mDataWriter = new SensorDataWriter("sensor.txt");
         findSerialPortDevice();
     }
 
@@ -124,12 +124,17 @@ public class UsbService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
+        fileName = intent.getStringExtra("file_name");
+        Log.d("onStartCommand extra", fileName);
+        mDataWriter = new SensorDataWriter(fileName);
+
         return Service.START_NOT_STICKY;
     }
 
     @Override
     public void onDestroy() {
         super.onDestroy();
+        unregisterReceiver(usbReceiver);
         UsbService.SERVICE_CONNECTED = false;
     }
 
@@ -141,13 +146,6 @@ public class UsbService extends Service {
         this.mHandler = mHandler;
     }
 
-    /**
-     * This is a setter method for the fileName to which the sensor data will be written.
-     * @param fileName - the String representation of the file name
-     */
-    public void setFileName(String fileName){
-        this.fileName = fileName;
-    }
 
     private void findSerialPortDevice() {
         // This snippet will try to open the first encountered usb device connected, excluding usb root hubs
@@ -158,7 +156,7 @@ public class UsbService extends Service {
                 device = entry.getValue();
                 int deviceVID = device.getVendorId();
 
-                if (deviceVID == 1027) {
+                if (deviceVID == TINY_DUINO_VID) {
 
                     // There is a device connected to our Android device. Try to open it as a Serial Port.
                     requestUserPermission();
@@ -186,7 +184,7 @@ public class UsbService extends Service {
     /**
      * This method registers an intent filter to listen to certain ,USB related, intents.
      */
-    private void setFilter() {
+    private void setIntentFilters() {
         IntentFilter filter = new IntentFilter();
         filter.addAction(ACTION_USB_PERMISSION);
         filter.addAction(ACTION_USB_DETACHED);
@@ -209,7 +207,7 @@ public class UsbService extends Service {
      * A binder class to get the UsbService - needed for the activity to bind to the service
      */
     public class UsbBinder extends Binder {
-        public UsbService getService() {
+        public UsbService getUsbService() {
             return UsbService.this;
         }
     }
@@ -243,14 +241,14 @@ public class UsbService extends Service {
                     //Thread.sleep(2000); // sleep some. YMMV with different chips.
 
                     // Everything went as expected. Send an intent to MainActivity
-                    Intent intent = new Intent(ACTION_USB_READY);
-                    context.sendBroadcast(intent);
+                    Intent readyIntent = new Intent(ACTION_USB_READY);
+                    context.sendBroadcast(readyIntent);
                 }
 
             } else {
                 // No driver for given device, even generic CDC driver could not be loaded
-                Intent intent = new Intent(ACTION_USB_NOT_SUPPORTED);
-                context.sendBroadcast(intent);
+                Intent notSupportedIntent = new Intent(ACTION_USB_NOT_SUPPORTED);
+                context.sendBroadcast(notSupportedIntent);
             }
         }
     }

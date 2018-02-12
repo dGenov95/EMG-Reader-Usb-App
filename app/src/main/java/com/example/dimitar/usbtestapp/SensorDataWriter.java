@@ -28,7 +28,7 @@ public class SensorDataWriter {
                 buf.close();
             }
             catch (IOException e){
-                Log.d("EXCEPTION WHEN WRITING", "MADAFAKA");
+                Log.d("EXCEPTION WHEN WRITING", e.getMessage());
                 e.printStackTrace();
             }
         }
