@@ -2,4 +2,21 @@
     <string name="app_name">UsbTestApp</string>
     <string name="start">Start</string>
     <string name="file_name">Save file to...</string>
+    <string name="terms_conditions">
+
+        This study is part of a fourth year, computer science student project, the main objective of which is to design and implement a fairly cheap EMG system for Android phone devices.\n
+        The study will proceed in the following conditions:\n
+        You will be placed 3 electrodes on the skin of your biceps.
+        These electrodes will be connected to two EMG systems, one at a time - a professional one and the one proposed by this project.\n
+        The recorded data from them will be used to see the muscle activity of your biceps under certain conditions.\n
+        To do that, you will be asked to hold different weights and flex your muscle using proper technique for each weight.
+        You will hold a flexed position for a short period of time and then relax the muscle.\n
+        After the two systems have been successfully used, the electrodes will be removed from your skin.\n
+        The electrical signals from your muscle will be recorded to a file in order to compare the two  systems.\n
+        To proceed with the study, please agree to the terms and conditions above.
+
+    </string>
+    <string name="terms_conditions_header"><![CDATA[Terms & Conditions]]></string>
+    <string name="proceed">Proceed</string>
+    <string name="agree_terms_conditions">I agree to the Terms and Conditions</string>
 </resources>
