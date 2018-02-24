@@ -1,10 +1,8 @@
 package com.example.dimitar.usbtestapp;
 
-import android.app.AlertDialog;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
@@ -39,19 +37,19 @@ public class MainActivity extends AppCompatActivity {
         public void onReceive(Context context, Intent intent) {
             switch (intent.getAction()) {
                 case UsbService.ACTION_USB_PERMISSION_GRANTED: // USB PERMISSION GRANTED
-                    Toast.makeText(context, "USB Ready", Toast.LENGTH_SHORT).show();
+                    displayToast(context, "USB Ready");
                     break;
                 case UsbService.ACTION_USB_PERMISSION_NOT_GRANTED: // USB PERMISSION NOT GRANTED
-                    Toast.makeText(context, "USB Permission not granted", Toast.LENGTH_SHORT).show();
+                    displayToast(context, "USB Permission not granted");
                     break;
                 case UsbService.ACTION_NO_USB: // NO USB CONNECTED
-                    Toast.makeText(context, "No USB connected", Toast.LENGTH_SHORT).show();
+                    displayToast(context, "No USB connected");
                     break;
                 case UsbService.ACTION_USB_DISCONNECTED: // USB DISCONNECTED
-                    Toast.makeText(context, "USB disconnected", Toast.LENGTH_SHORT).show();
+                   displayToast(context, "USB disconnected");
                     break;
                 case UsbService.ACTION_USB_NOT_SUPPORTED: // USB NOT SUPPORTED
-                    Toast.makeText(context, "USB device not supported", Toast.LENGTH_SHORT).show();
+                    displayToast(context, "USB device not supported");
                     break;
             }
         }
@@ -90,7 +88,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public void onResume() {
         super.onResume();
-        setFilters();  // Start listening notifications from UsbService
+        setFilters();  // Start listening for notifications from UsbService
     }
 
     @Override
@@ -111,22 +109,12 @@ public class MainActivity extends AppCompatActivity {
     public void onClickStart(View view){
         String fileName = fileNameText.getText().toString();
         if(fileName.isEmpty() || fileName.equals("")){
-            AlertDialog alertDialog = new AlertDialog.Builder(MainActivity.this).create();
-            alertDialog.setTitle("Oops");
-            alertDialog.setMessage("Please eneter a name for the file to save sensor data to.");
-            alertDialog.setButton(AlertDialog.BUTTON_NEUTRAL, "OK",
-                    new DialogInterface.OnClickListener() {
-                        public void onClick(DialogInterface dialog, int which) {
-                            dialog.dismiss();
-                        }
-                    });
-            alertDialog.show();
+           displayToast(this,"Please provide a file name to save the sensor data");
         }else{
             fileName.trim();
             fileName += ".txt";
             Bundle fileNameExtra = new Bundle();
             fileNameExtra.putString("file_name",fileName);
-            Log.d("onClick bundle",fileNameExtra.getString("file_name"));
             startService(UsbService.class, usbConnection, fileNameExtra); // Start UsbService(if it was not started before) and Bind it
         }
     }
@@ -167,7 +155,9 @@ public class MainActivity extends AppCompatActivity {
         registerReceiver(mUsbReceiver, filter);
     }
 
-
+    private void displayToast(Context context,String message){
+        Toast.makeText(context,message,Toast.LENGTH_SHORT).show();
+    }
     /**----------------------------------------------------------------------------------------*/
 
     /**
