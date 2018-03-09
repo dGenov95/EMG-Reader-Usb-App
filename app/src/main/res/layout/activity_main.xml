@@ -33,8 +33,13 @@
         android:layout_centerHorizontal="true"
         android:textAlignment="center"
         android:layout_below="@id/startButton"
-        android:textSize="50sp"
+        android:textSize="20sp"
         android:textStyle="bold" />
+    <com.jjoe64.graphview.GraphView
+        android:id="@+id/graph"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_below="@+id/data"/>
 
 
 </RelativeLayout>

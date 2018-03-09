@@ -15,6 +15,8 @@ import android.os.IBinder;
 import android.util.Log;
 import com.felhr.usbserial.UsbSerialDevice;
 import com.felhr.usbserial.UsbSerialInterface;
+import com.jjoe64.graphview.series.DataPoint;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -54,13 +56,10 @@ public class UsbService extends Service {
         @Override
         public void onReceivedData(byte[] arg0) {
             String data = new String(arg0);
-            Log.d("onReceiveData", data);
-            mDataWriter.writeToFile(data);
+           // mDataWriter.writeToFile(data);
             if (mHandler != null) {
-                Log.d("Sending to the handler", data);
                 mHandler.obtainMessage(MESSAGE_FROM_SERIAL_PORT, data).sendToTarget();
             }
-
         }
     };
 
@@ -75,14 +74,14 @@ public class UsbService extends Service {
         public void onReceive(Context ctx, Intent intent) {
             if (intent.getAction().equals(ACTION_USB_PERMISSION)) {
                 boolean granted = intent.getExtras().getBoolean(UsbManager.EXTRA_PERMISSION_GRANTED);
-                if (granted) // User accepted our USB connection. Try to open the device as a serial port
-                {
+                if (granted){ // User accepted our USB connection. Try to open the device as a serial port
+
                     Intent acceptedIntent = new Intent(ACTION_USB_PERMISSION_GRANTED);
                     ctx.sendBroadcast(acceptedIntent);
                     connection = usbManager.openDevice(device);
                     new ConnectionThread().start();
-                } else // User not accepted our USB connection. Send an Intent to the Main Activity
-                {
+                } else { // User not accepted our USB connection. Send an Intent to the Main Activity
+
                     Intent rejectedIntent = new Intent(ACTION_USB_PERMISSION_NOT_GRANTED);
                     ctx.sendBroadcast(rejectedIntent);
                 }
