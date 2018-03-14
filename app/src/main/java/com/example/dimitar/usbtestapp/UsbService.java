@@ -32,7 +32,6 @@ public class UsbService extends Service {
     public static final String ACTION_USB_DISCONNECTED = "com.felhr.usbservice.USB_DISCONNECTED";
     private static final String ACTION_USB_PERMISSION = "com.android.example.USB_PERMISSION";
     private static final int BAUD_RATE = 9600; // BaudRate of the connection
-    public static boolean SERVICE_CONNECTED = false;
     public static final int MESSAGE_FROM_SERIAL_PORT = 0;
     private static final int TINY_DUINO_VID = 1027;
 
@@ -56,7 +55,10 @@ public class UsbService extends Service {
         @Override
         public void onReceivedData(byte[] arg0) {
             String data = new String(arg0);
-           // mDataWriter.writeToFile(data);
+            if(mDataWriter != null) {
+                mDataWriter.writeToFile(data);
+            }
+
             if (mHandler != null) {
                 mHandler.obtainMessage(MESSAGE_FROM_SERIAL_PORT, data).sendToTarget();
             }
@@ -110,8 +112,6 @@ public class UsbService extends Service {
         this.context = this;
         //This will change once the port is connected successfully
         serialPortConnected = false;
-        //This changes when the service is destroyed
-        UsbService.SERVICE_CONNECTED = true;
         //Set the filters
         setIntentFilters();
         usbManager = (UsbManager) getSystemService(Context.USB_SERVICE);
@@ -122,22 +122,12 @@ public class UsbService extends Service {
 
     @Override
     public IBinder onBind(Intent intent) {
-        return binder;
-    }
 
-    /**
-     * This method is called when the service is started. It checks if any extra has been added
-     * to indicate a file name to which to write usb data to, it creates an instance of the
-     * SensorDataWriter and passes the file name to it.
-     */
-    @Override
-    public int onStartCommand(Intent intent, int flags, int startId) {
         if(intent.hasExtra("file_name")){
             String fileName = intent.getStringExtra("file_name");
             mDataWriter = new SensorDataWriter(fileName);
         }
-        Log.d("Service", "onStartCommand");
-        return Service.START_NOT_STICKY;
+        return binder;
     }
 
     @Override
@@ -145,7 +135,6 @@ public class UsbService extends Service {
         super.onDestroy();
         Log.d("Service", "onDestroy");
         unregisterReceiver(usbReceiver);
-        UsbService.SERVICE_CONNECTED = false;
     }
 
     /**

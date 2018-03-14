@@ -19,4 +19,5 @@
     <string name="terms_conditions_header"><![CDATA[Terms & Conditions]]></string>
     <string name="proceed">Proceed</string>
     <string name="agree_terms_conditions">I agree to the Terms and Conditions</string>
+    <string name="stop_text">Stop</string>
 </resources>
