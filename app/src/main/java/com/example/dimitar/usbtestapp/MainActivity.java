@@ -225,7 +225,6 @@ public class MainActivity extends AppCompatActivity {
         public void handleMessage(Message msg) {
             if (msg.what ==UsbService.MESSAGE_FROM_SERIAL_PORT ) {
                 String newData = (String) msg.obj;
-                Log.d("Handled data",newData);
                 try {
                     int numData = NumberFormat.getInstance().parse(newData).intValue();
                     DataPoint dp = new DataPoint(2, numData);
@@ -237,7 +236,6 @@ public class MainActivity extends AppCompatActivity {
                 }catch (ParseException e){
                     Log.d("Exception in service", e.getMessage());
                 }
-                mActivity.get().display.setText(newData);
 
             }
         }

@@ -15,13 +15,13 @@ import android.os.IBinder;
 import android.util.Log;
 import com.felhr.usbserial.UsbSerialDevice;
 import com.felhr.usbserial.UsbSerialInterface;
-import com.jjoe64.graphview.series.DataPoint;
 
 import java.util.HashMap;
 import java.util.Map;
 
 public class UsbService extends Service {
 
+    //Declare variables for the different usb related actions, used to send intents to the MainActivity
     public static final String ACTION_USB_READY = "com.felhr.connectivityservices.USB_READY";
     public static final String ACTION_USB_ATTACHED = "android.hardware.usb.action.USB_DEVICE_ATTACHED";
     public static final String ACTION_USB_DETACHED = "android.hardware.usb.action.USB_DEVICE_DETACHED";
@@ -30,10 +30,10 @@ public class UsbService extends Service {
     public static final String ACTION_USB_PERMISSION_GRANTED = "com.felhr.usbservice.USB_PERMISSION_GRANTED";
     public static final String ACTION_USB_PERMISSION_NOT_GRANTED = "com.felhr.usbservice.USB_PERMISSION_NOT_GRANTED";
     public static final String ACTION_USB_DISCONNECTED = "com.felhr.usbservice.USB_DISCONNECTED";
-    public static final int MESSAGE_FROM_SERIAL_PORT = 0;
     private static final String ACTION_USB_PERMISSION = "com.android.example.USB_PERMISSION";
-    private static final int BAUD_RATE = 9600; // BaudRate. Change this value if you need
+    private static final int BAUD_RATE = 9600; // BaudRate of the connection
     public static boolean SERVICE_CONNECTED = false;
+    public static final int MESSAGE_FROM_SERIAL_PORT = 0;
     private static final int TINY_DUINO_VID = 1027;
 
     private IBinder binder = new UsbBinder();
@@ -74,22 +74,23 @@ public class UsbService extends Service {
         public void onReceive(Context ctx, Intent intent) {
             if (intent.getAction().equals(ACTION_USB_PERMISSION)) {
                 boolean granted = intent.getExtras().getBoolean(UsbManager.EXTRA_PERMISSION_GRANTED);
-                if (granted){ // User accepted our USB connection. Try to open the device as a serial port
-
+                if (granted){ // User accepted the USB connection - try to open the device as a serial port
+                    //Tell the MainActivity that permission was granted
                     Intent acceptedIntent = new Intent(ACTION_USB_PERMISSION_GRANTED);
                     ctx.sendBroadcast(acceptedIntent);
+                    //Open the device as a serial port
                     connection = usbManager.openDevice(device);
                     new ConnectionThread().start();
-                } else { // User not accepted our USB connection. Send an Intent to the Main Activity
+                } else { // User not accepted the USB connection - Send an Intent to the Main Activity
 
                     Intent rejectedIntent = new Intent(ACTION_USB_PERMISSION_NOT_GRANTED);
                     ctx.sendBroadcast(rejectedIntent);
                 }
             } else if (intent.getAction().equals(ACTION_USB_ATTACHED)) {
                 if (!serialPortConnected)
-                    findSerialPortDevice(); // A USB device has been attached. Try to open it as a Serial port
+                    findSerialPortDevice(); // A USB device has been attached - try to open it as a Serial port
             } else if (intent.getAction().equals(ACTION_USB_DETACHED)) {
-                // Usb device was disconnected. send an intent to the Main Activity
+                // Usb device was disconnected - send an intent to the MainActivity
                 Intent disconnectedIntent = new Intent(ACTION_USB_DISCONNECTED);
                 ctx.sendBroadcast(disconnectedIntent);
                 if (serialPortConnected) {
@@ -107,10 +108,14 @@ public class UsbService extends Service {
     @Override
     public void onCreate() {
         this.context = this;
+        //This will change once the port is connected successfully
         serialPortConnected = false;
+        //This changes when the service is destroyed
         UsbService.SERVICE_CONNECTED = true;
+        //Set the filters
         setIntentFilters();
         usbManager = (UsbManager) getSystemService(Context.USB_SERVICE);
+        //Search for the attached TinyDuino device
         findSerialPortDevice();
     }
 
@@ -131,13 +136,14 @@ public class UsbService extends Service {
             String fileName = intent.getStringExtra("file_name");
             mDataWriter = new SensorDataWriter(fileName);
         }
-
+        Log.d("Service", "onStartCommand");
         return Service.START_NOT_STICKY;
     }
 
     @Override
     public void onDestroy() {
         super.onDestroy();
+        Log.d("Service", "onDestroy");
         unregisterReceiver(usbReceiver);
         UsbService.SERVICE_CONNECTED = false;
     }
@@ -157,24 +163,33 @@ public class UsbService extends Service {
      * sent.
      */
     private void findSerialPortDevice() {
-        // This snippet will try to open the first encountered usb device connected, excluding usb root hubs
+        //This snippet will try to open the TinyDuino device connected
+        //Get all the attached devices list
         HashMap<String, UsbDevice> usbDevices = usbManager.getDeviceList();
-        if (!usbDevices.isEmpty()) {
+
+        if (!usbDevices.isEmpty()) { //Checks if there are any devices attached at all
+            //A variable to indicate whether to keep looking for TinyDuino or not
             boolean keep = true;
+            //Go through each one of the attached devices until a TinyDuino device is found
             for (Map.Entry<String, UsbDevice> entry : usbDevices.entrySet()) {
+                //Get the device object of the current entry
                 device = entry.getValue();
+                //Get its vendor ID for comparison
                 int deviceVID = device.getVendorId();
 
                 if (deviceVID == TINY_DUINO_VID) {
-
-                    // There is a device connected to our Android device. Try to open it as a Serial Port.
+                    // There is a TinyDuino connected to our Android device. Ask the user for
+                    // permission to open it as a serial port.
                     requestUserPermission();
+                    //Also indicate that it was found
                     keep = false;
                 } else {
+                    //The device is not a TinyDuino, set the connection and device variables to null
                     connection = null;
                     device = null;
                 }
 
+                //Tell the loop to stop looking for devices if the TinyDuino was found
                 if (!keep)
                     break;
             }
@@ -195,9 +210,10 @@ public class UsbService extends Service {
      */
     private void setIntentFilters() {
         IntentFilter filter = new IntentFilter();
-        filter.addAction(ACTION_USB_PERMISSION);
-        filter.addAction(ACTION_USB_DETACHED);
-        filter.addAction(ACTION_USB_ATTACHED);
+        //The receiver should listen for these events
+        filter.addAction(ACTION_USB_PERMISSION); //when user permission has to be asked
+        filter.addAction(ACTION_USB_DETACHED); //when the usb is detached
+        filter.addAction(ACTION_USB_ATTACHED); //when to usb is attached
         registerReceiver(usbReceiver, filter);
     }
 
@@ -229,33 +245,23 @@ public class UsbService extends Service {
         public void run() {
             serialPort = UsbSerialDevice.createUsbSerialDevice(device, connection);
             if (serialPort != null) {
+                //Try to open the port
                 if (serialPort.open()) {
                     serialPortConnected = true;
+                    //Set the connection properties to match those of the TinyDuino
                     serialPort.setBaudRate(BAUD_RATE);
                     serialPort.setDataBits(UsbSerialInterface.DATA_BITS_8);
                     serialPort.setStopBits(UsbSerialInterface.STOP_BITS_1);
                     serialPort.setParity(UsbSerialInterface.PARITY_NONE);
-                    /**
-                     * Current flow control Options:
-                     * UsbSerialInterface.FLOW_CONTROL_OFF
-                     * UsbSerialInterface.FLOW_CONTROL_RTS_CTS only for CP2102 and FT232
-                     * UsbSerialInterface.FLOW_CONTROL_DSR_DTR only for CP2102 and FT232
-                     */
                     serialPort.setFlowControl(UsbSerialInterface.FLOW_CONTROL_OFF);
                     serialPort.read(mCallback);
-
-                    //
-                    // Some Arduinos would need some sleep because firmware wait some time to know whether a new sketch is going
-                    // to be uploaded or not
-                    //Thread.sleep(2000); // sleep some. YMMV with different chips.
-
                     // Everything went as expected. Send an intent to MainActivity
                     Intent readyIntent = new Intent(ACTION_USB_READY);
                     context.sendBroadcast(readyIntent);
                 }
 
             } else {
-                // No driver for given device, even generic CDC driver could not be loaded
+                // No driver for current device - could not be loaded
                 Intent notSupportedIntent = new Intent(ACTION_USB_NOT_SUPPORTED);
                 context.sendBroadcast(notSupportedIntent);
             }
