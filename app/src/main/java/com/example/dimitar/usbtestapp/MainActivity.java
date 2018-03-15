@@ -2,19 +2,9 @@ package com.example.dimitar.usbtestapp;
 
 import android.app.Activity;
 import android.app.AlertDialog;
-import android.content.BroadcastReceiver;
-import android.content.ComponentName;
-import android.content.Context;
-import android.content.DialogInterface;
-import android.content.Intent;
-import android.content.IntentFilter;
-import android.content.ServiceConnection;
+import android.content.*;
 import android.graphics.Color;
-import android.os.Build;
-import android.os.Bundle;
-import android.os.Handler;
-import android.os.IBinder;
-import android.os.Message;
+import android.os.*;
 import android.util.Log;
 import android.view.View;
 import android.widget.EditText;
@@ -30,17 +20,23 @@ import java.text.NumberFormat;
 import java.text.ParseException;
 import java.util.Set;
 
+/**
+ * The MainActivity class is the one responsible for the main screen shown to the user. It receives
+ * user events, responds to them accordingly and shows the sensor data on the screen.
+ * It contains an inner class, responsible for handling the data coming from the UsbService
+ * and has all the methods that correspond to a certain user action (pressing buttons etc.)
+ */
 public class MainActivity extends Activity {
 
 
     private UsbService usbService;
     private EditText fileNameText;
-    private MyHandler mHandler;
+    private UsbHandler mHandler;
     private GraphView graph;
     private LineGraphSeries<DataPoint> dataSeries;
     private boolean canUnbind;
     //A variable to keep track of the last X point in the graph
-    private double lastGraphX;
+    private double graphX;
 
     /**
      * Receive the UsbService notifications and display a Toast message to inform the current
@@ -49,22 +45,24 @@ public class MainActivity extends Activity {
     private final BroadcastReceiver mUsbReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            switch (intent.getAction()) {
-                case UsbService.ACTION_USB_PERMISSION_GRANTED: // USB PERMISSION GRANTED
-                    displayToast(context, "USB Ready");
-                    break;
-                case UsbService.ACTION_USB_PERMISSION_NOT_GRANTED: // USB PERMISSION NOT GRANTED
-                    displayToast(context, "USB Permission not granted");
-                    break;
-                case UsbService.ACTION_NO_USB: // NO USB CONNECTED
-                    displayToast(context, "No USB connected");
-                    break;
-                case UsbService.ACTION_USB_DISCONNECTED: // USB DISCONNECTED
-                    displayToast(context, "USB disconnected");
-                    break;
-                case UsbService.ACTION_USB_NOT_SUPPORTED: // USB NOT SUPPORTED
-                    displayToast(context, "USB device not supported");
-                    break;
+            if(intent.getAction() != null) {
+                switch (intent.getAction()) {
+                    case UsbService.ACTION_USB_PERMISSION_GRANTED: // USB PERMISSION GRANTED
+                        displayToast(context, "USB Ready");
+                        break;
+                    case UsbService.ACTION_USB_PERMISSION_NOT_GRANTED: // USB PERMISSION NOT GRANTED
+                        displayToast(context, "USB Permission not granted");
+                        break;
+                    case UsbService.ACTION_NO_USB: // NO USB CONNECTED
+                        displayToast(context, "No USB connected");
+                        break;
+                    case UsbService.ACTION_USB_DISCONNECTED: // USB DISCONNECTED
+                        displayToast(context, "USB disconnected");
+                        break;
+                    case UsbService.ACTION_USB_NOT_SUPPORTED: // USB NOT SUPPORTED
+                        displayToast(context, "USB device not supported");
+                        break;
+                }
             }
         }
     };
@@ -96,10 +94,10 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        mHandler = new MyHandler(this);
+        mHandler = new UsbHandler(this);
         //Initialize the widgets
-        fileNameText = (EditText) findViewById(R.id.fileNameView);
-        graph = (GraphView) findViewById(R.id.graph);
+        fileNameText = findViewById(R.id.fileNameView);
+        graph = findViewById(R.id.graph);
         dataSeries = new LineGraphSeries<>();
         setGraphOptions();
         graph.addSeries(dataSeries);
@@ -126,10 +124,9 @@ public class MainActivity extends Activity {
      */
     private void setGraphOptions(){
         Viewport graphViewPort = graph.getViewport();
+        graphViewPort.setMaxY(1024);
         // set manual X bounds
         graphViewPort.setYAxisBoundsManual(true);
-        graphViewPort.setMinY(0);
-        graphViewPort.setMaxY(1050);
         graphViewPort.setXAxisBoundsManual(true);
         graphViewPort.computeScroll();
         //Set background to black
@@ -154,12 +151,12 @@ public class MainActivity extends Activity {
         if(fileName.isEmpty() || fileName.equals("")){
             displayToast(this,"Please provide a file name to save the sensor data");
         }else{
-            fileName.trim();
+            fileName = fileName.trim();
             fileName += ".txt";
             Bundle fileNameExtra = new Bundle();
             fileNameExtra.putString("file_name",fileName);
             //Set the graph's X axis
-            lastGraphX = System.nanoTime()/ 1000000000.0;
+            graphX = System.nanoTime()/ 1000000000.0;
             bindService(fileNameExtra); // Start UsbService(if it was not started before) and Bind it
         }
     }
@@ -176,7 +173,7 @@ public class MainActivity extends Activity {
      * A pop up window that shows the terms and conditions of the application. Activates when the user
      * clicks the Terms and Conditions text shown on the screen. Meanwhile, the applications continues
      * running in the background.
-     * @param view
+     * @param view - the corresponding view object of the TextView
      */
     public void showTsAndCs(View view) {
         //Check the Android version to determine what the dialog would look like
@@ -201,7 +198,7 @@ public class MainActivity extends Activity {
 
     /**
      * This method is intended to start the service. It checks if any extras are passed. If so, it
-     * adds all of the to the binding intent and tries to bind to the service. If this is successful
+     * adds all of them to the binding intent and tries to bind to the service. If this is successful
      * a toast message is shown to the user to indicate that.
      * @param extras - any extras that the service might need
      */
@@ -222,8 +219,8 @@ public class MainActivity extends Activity {
     }
 
     /**
-     * The method is used to safely unbind from an already bound service. It checks whether a service
-     * is already bound. If so, it unbinds from it and displays a toast message to the user. Otherwise
+     * The method is used to safely unbind from an already bound service. It checks whether it is
+     * already bound. If so, it unbinds from it and displays a toast message to the user. Otherwise
      * a toast message to indicate that the service is already unbound is shown.
      */
     private void unbindService(){
@@ -259,15 +256,17 @@ public class MainActivity extends Activity {
     }
 
 
-    /**----------------------------------------------------------------------------------------*/
-
     /**
      * This handler will be passed to UsbService. Data received from serial port is displayed through this handler
      */
-    private static class MyHandler extends Handler {
+    private static class UsbHandler extends Handler {
         private final WeakReference<MainActivity> mActivity;
 
-        public MyHandler(MainActivity activity) {
+        /**
+         * The constructor of the Handler object.
+         * @param activity - the reference to the MainActivity class
+         */
+        UsbHandler(MainActivity activity) {
             mActivity = new WeakReference<>(activity);
         }
 
@@ -277,23 +276,23 @@ public class MainActivity extends Activity {
          */
         @Override
         public void handleMessage(Message msg) {
-            //Get the new X axis to be added to the graph - subtract the current time from the
-            //
-            double newGraphX =System.nanoTime()/ 100000000.0 - mActivity.get().lastGraphX;
+            //Get the new X axis to be added to the graph - subtract the current time in seconds
+            // from the initial X time
+            double newGraphX =System.nanoTime()/ 100000000.0 - mActivity.get().graphX;
             //Check if the message is the one from the serial port
             if (msg.what == UsbService.MESSAGE_FROM_SERIAL_PORT ) {
                 //Get the string object of it
                 String newData = (String) msg.obj;
                 try {
                     //Try to parse it as an Integer
-                    int numData = NumberFormat.getInstance().parse(newData).intValue();
+                    int graphY = NumberFormat.getInstance().parse(newData).intValue();
                     //Create a new graph data point with the X axis set to the new X
-                    DataPoint dp = new DataPoint(newGraphX, numData);
+                    DataPoint dp = new DataPoint(newGraphX, graphY);
                     Log.d("Data point X", String.valueOf(dp.getX()));
                     Log.d("Data point Y", String.valueOf(dp.getY()));
                     //Get the series reference from the activity and append the data to it
                     mActivity.get().dataSeries.appendData(dp,true,40);
-                    Log.d("Appending to graph", newData.toString());
+                    Log.d("Appending to graph", newData);
 
                 }catch (ParseException e){
                     Log.d("Exception in service", e.getMessage());
