@@ -1,14 +1,16 @@
 package com.example.dimitar.usbtestapp;
 
 import android.app.Activity;
-import android.app.ActivityManager;
+import android.app.AlertDialog;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.graphics.Color;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
@@ -173,9 +175,29 @@ public class MainActivity extends Activity {
         unbindService();
     }
 
+    public void showTsAndCs(View view) {
+        AlertDialog.Builder builder;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            builder = new AlertDialog.Builder(this, android.R.style.Theme_Material_Dialog_Alert);
+        } else {
+            builder = new AlertDialog.Builder(this);
+        }
+        builder.setTitle("Terms & Conditions")
+                .setMessage("TODO")
+                .setPositiveButton("Proceed", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+
+                    }
+                })
+                .setIcon(android.R.drawable.ic_dialog_info)
+                .show();
+    }
 
     /**
-     * This method is intended to start the service
+     * This method is intended to start the service. It checks if any extras are passed. If so, it
+     * adds all of the to the binding intent and tries to bind to the service. If this is successful
+     * a toast message is shown to the user to indicate that.
      * @param extras - any extras that the service might need
      */
     private void bindService(Bundle extras) {
@@ -194,6 +216,11 @@ public class MainActivity extends Activity {
         }
     }
 
+    /**
+     * The method is used to safely unbind from an already bound service. It checks whether a service
+     * is already bound. If so, it unbinds from it and displays a toast message to the user. Otherwise
+     * a toast message to indicate that the service is already unbound is shown.
+     */
     private void unbindService(){
         if(canUnbind){
             canUnbind = false;
@@ -217,9 +244,16 @@ public class MainActivity extends Activity {
         registerReceiver(mUsbReceiver, filter);
     }
 
+    /**
+     * A helper function to display a toast message.
+     * @param context - the context on which to display it
+     * @param message - the message to be displayed
+     */
     private void displayToast(Context context,String message){
         Toast.makeText(context,message,Toast.LENGTH_SHORT).show();
     }
+
+
     /**----------------------------------------------------------------------------------------*/
 
     /**

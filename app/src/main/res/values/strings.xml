@@ -20,4 +20,5 @@
     <string name="proceed">Proceed</string>
     <string name="agree_terms_conditions">I agree to the Terms and Conditions</string>
     <string name="stop_text">Stop</string>
+    <string name="terms_and_conditions">Terms and Conditions</string>
 </resources>
