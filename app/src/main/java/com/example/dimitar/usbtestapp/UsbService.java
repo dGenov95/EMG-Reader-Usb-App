@@ -19,6 +19,19 @@ import com.felhr.usbserial.UsbSerialInterface;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * The UsbService class is used to perform all the USB actions in the background, while the user
+ * interacts with the UI.
+ * It is used as a bound service, because the Activity calling it should be able to communicate with
+ * it, based on the user interaction.
+ * It listens to USB specific Broadcast events (usb attached/detached etc.) and sends the appropriate
+ * feedback to the UI to notify the user.
+ * Furthermore, when the user grants a permission for a USB communication, the Service looks for a
+ * TinyDuino device. If such is found, it tries to open a connection and read the data coming from it.
+ * Whenever new data is received, it is passed to a Handler object which allows the Activity
+ * that is binding to the UsbService to update its UI.
+ */
+
 public class UsbService extends Service {
 
     //Declare variables for the different usb related actions, used to send intents to the MainActivity
@@ -33,10 +46,13 @@ public class UsbService extends Service {
     private static final String ACTION_USB_PERMISSION = "com.android.example.USB_PERMISSION";
     private static final int BAUD_RATE = 9600; // BaudRate of the connection
     public static final int MESSAGE_FROM_SERIAL_PORT = 0;
-    private static final int TINY_DUINO_VID = 1027;
+    private static final int TINY_DUINO_VID = 1027; //The particular Vendor ID of the TinyDuino
 
+    //The IBinder object used for binding the service
     private IBinder binder = new UsbBinder();
 
+    //The variables needed for the USB connection, its data passing to the Activity and
+    //writing to a separate file
     private Context context;
     private Handler mHandler;
     private UsbManager usbManager;
@@ -44,8 +60,8 @@ public class UsbService extends Service {
     private UsbDeviceConnection connection;
     private UsbSerialDevice serialPort;
     private SensorDataWriter mDataWriter;
-
-    private boolean serialPortConnected;
+    //A variable to track if the connection is opened
+    private boolean serialPortOpened;
 
     /**
      *  Data received from the serial port will be received here. The
@@ -80,51 +96,60 @@ public class UsbService extends Service {
                     //Tell the MainActivity that permission was granted
                     Intent acceptedIntent = new Intent(ACTION_USB_PERMISSION_GRANTED);
                     ctx.sendBroadcast(acceptedIntent);
-                    //Open the device as a serial port
+                    //Open the device as device connection
                     connection = usbManager.openDevice(device);
+                    //Run the thread responsible for opening the serial port
                     new ConnectionThread().start();
                 } else { // User not accepted the USB connection - Send an Intent to the Main Activity
-
                     Intent rejectedIntent = new Intent(ACTION_USB_PERMISSION_NOT_GRANTED);
                     ctx.sendBroadcast(rejectedIntent);
                 }
-            } else if (intent.getAction().equals(ACTION_USB_ATTACHED)) {
-                if (!serialPortConnected)
-                    findSerialPortDevice(); // A USB device has been attached - try to open it as a Serial port
+            } else if (intent.getAction().equals(ACTION_USB_ATTACHED)) { //The USB has been attached
+                //Check whether a connection is opened or not
+                if (!serialPortOpened)
+                    //If it is not
+                    findDevice(); // try to open the USB as a Serial port
             } else if (intent.getAction().equals(ACTION_USB_DETACHED)) {
                 // Usb device was disconnected - send an intent to the MainActivity
                 Intent disconnectedIntent = new Intent(ACTION_USB_DISCONNECTED);
                 ctx.sendBroadcast(disconnectedIntent);
-                if (serialPortConnected) {
-                    serialPort.close();
-                }
-                serialPortConnected = false;
+                //Close the connection
+                closeUsbConnection();
             }
         }
     };
 
     /**
-     * onCreate will be executed when service is started. It configures an IntentFilter to listen for
-     * incoming Intents (USB ATTACHED, USB DETACHED...) and it tries to open a serial port.
+     * onCreate will be executed when the service is started. It runs once and
+     * initializes the variables. An IntentFilter to listen for incoming Intents
+     * (USB ATTACHED, USB DETACHED...) is also configured. Finally it tries to open a serial port
+     * if a particular USB device is attached.
      */
     @Override
     public void onCreate() {
         this.context = this;
         //This will change once the port is connected successfully
-        serialPortConnected = false;
+        serialPortOpened = false;
         //Set the filters
         setIntentFilters();
         usbManager = (UsbManager) getSystemService(Context.USB_SERVICE);
         //Search for the attached TinyDuino device
-        findSerialPortDevice();
+        findDevice();
     }
 
-
+    /**
+     * This method is called when another component calls the bindService method. It passes an intent
+     * as a parameter, which can be used to get extra information passed from the component. It executes
+     * every time the bindService method is called.
+     * @param intent - the Intent passed from the component binding to the service
+     * @return - an IBiner implementation.
+     */
     @Override
     public IBinder onBind(Intent intent) {
-
+        //Whenever the service is bound, get the file name specified by user
         if(intent.hasExtra("file_name")){
             String fileName = intent.getStringExtra("file_name");
+            //Create a new data writer object that will store the data whenever it is received
             mDataWriter = new SensorDataWriter(fileName);
         }
         return binder;
@@ -134,6 +159,9 @@ public class UsbService extends Service {
     public void onDestroy() {
         super.onDestroy();
         Log.d("Service", "onDestroy");
+        //Before the service is destroyed, make sure the connection with the usb is closed.
+        closeUsbConnection();
+        //And unregister the broadcast receiver
         unregisterReceiver(usbReceiver);
     }
 
@@ -151,7 +179,7 @@ public class UsbService extends Service {
      * for permission to use the device. If no such device was found, an intent indicating that is
      * sent.
      */
-    private void findSerialPortDevice() {
+    private void findDevice() {
         //This snippet will try to open the TinyDuino device connected
         //Get all the attached devices list
         HashMap<String, UsbDevice> usbDevices = usbManager.getDeviceList();
@@ -165,7 +193,6 @@ public class UsbService extends Service {
                 device = entry.getValue();
                 //Get its vendor ID for comparison
                 int deviceVID = device.getVendorId();
-
                 if (deviceVID == TINY_DUINO_VID) {
                     // There is a TinyDuino connected to our Android device. Ask the user for
                     // permission to open it as a serial port.
@@ -177,7 +204,6 @@ public class UsbService extends Service {
                     connection = null;
                     device = null;
                 }
-
                 //Tell the loop to stop looking for devices if the TinyDuino was found
                 if (!keep)
                     break;
@@ -192,6 +218,14 @@ public class UsbService extends Service {
             Intent intent = new Intent(ACTION_NO_USB);
             sendBroadcast(intent);
         }
+    }
+
+    /**
+     * A helper method that closes the serial port connection if it was opened previously.
+     */
+    private void closeUsbConnection(){
+        if(serialPortOpened) serialPort.close();
+        serialPortOpened = false;
     }
 
     /**
@@ -236,7 +270,7 @@ public class UsbService extends Service {
             if (serialPort != null) {
                 //Try to open the port
                 if (serialPort.open()) {
-                    serialPortConnected = true;
+                    serialPortOpened = true;
                     //Set the connection properties to match those of the TinyDuino
                     serialPort.setBaudRate(BAUD_RATE);
                     serialPort.setDataBits(UsbSerialInterface.DATA_BITS_8);

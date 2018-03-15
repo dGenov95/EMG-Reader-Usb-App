@@ -1,6 +1,7 @@
 package com.example.dimitar.usbtestapp;
 
 import android.app.Activity;
+import android.app.ActivityManager;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
@@ -12,7 +13,6 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
-import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
 import android.widget.EditText;
@@ -71,11 +71,12 @@ public class MainActivity extends Activity {
      * Then the usbService reference is cast from the Binder class's getUsbService method.
      */
     private final ServiceConnection usbConnection = new ServiceConnection() {
+
         @Override
         public void onServiceConnected(ComponentName arg0, IBinder arg1) {
+            Log.d("MainActivity", "onServiceConnected");
             usbService = ((UsbService.UsbBinder) arg1).getUsbService();
             usbService.setHandler(mHandler);
-            Log.d("MainActivity", "onServiceConnected");
         }
 
         @Override
@@ -105,7 +106,6 @@ public class MainActivity extends Activity {
     public void onResume() {
         super.onResume();
         setFilters();  // Start listening for notifications from UsbService
-
     }
 
     @Override
@@ -117,7 +117,7 @@ public class MainActivity extends Activity {
     }
 
     /**
-     * A method that sets the graph properties. It also configres the graph
+     * A method that sets the graph properties. It also configures the graph
      * so that its color changes, based on the value appended to it
      */
     private void setGraphOptions(){

@@ -30,11 +30,12 @@
         android:id="@+id/stopButton"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true"
         android:layout_below="@+id/startButton"
-        android:layout_centerHorizontal="true"
         android:onClick="onClickStop"
         android:text="@string/stop_text"
-        tools:textSize="30sp" />
+        android:textSize="30sp"/>
 
     <com.jjoe64.graphview.GraphView
         android:id="@+id/graph"
