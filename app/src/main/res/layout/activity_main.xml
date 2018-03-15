@@ -12,32 +12,31 @@
         android:layout_alignParentLeft="true"
         android:layout_alignParentStart="true"
         android:layout_below="@+id/termsAndConditions"
-        android:layout_marginTop="11dp"
         android:hint="@string/file_name"
         android:textSize="20sp" />
 
     <Button
         android:id="@+id/startButton"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_below="@id/fileNameView"
-        android:layout_centerHorizontal="true"
-        android:layout_marginTop="10dp"
-        android:onClick="onClickStart"
-        android:text="@string/start"
-        android:textAlignment="center"
-        android:textSize="30sp" />
-
-    <Button
-        android:id="@+id/stopButton"
-        android:layout_width="match_parent"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_alignParentLeft="true"
         android:layout_alignParentStart="true"
-        android:layout_below="@+id/startButton"
+        android:layout_below="@+id/fileNameView"
+        android:onClick="onClickStart"
+        android:text="@string/start"
+        android:textAlignment="center"
+        android:textSize="20sp" />
+
+    <Button
+        android:id="@+id/stopButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentEnd="true"
+        android:layout_alignParentRight="true"
+        android:layout_below="@+id/fileNameView"
         android:onClick="onClickStop"
         android:text="@string/stop_text"
-        android:textSize="30sp"/>
+        android:textSize="20sp" />
 
     <com.jjoe64.graphview.GraphView
         android:id="@+id/graph"
@@ -59,7 +58,7 @@
         android:text="@string/terms_and_conditions"
         android:textAlignment="center"
         android:textSize="15sp"
-        android:textStyle="italic" android:focusable="true"/>
+        android:textStyle="italic" android:focusable="true" />
 
 
 </RelativeLayout>

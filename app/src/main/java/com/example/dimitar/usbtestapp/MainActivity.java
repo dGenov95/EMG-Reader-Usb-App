@@ -21,9 +21,9 @@ import android.widget.EditText;
 import android.widget.Toast;
 
 import com.jjoe64.graphview.GraphView;
-import com.jjoe64.graphview.ValueDependentColor;
-import com.jjoe64.graphview.series.BarGraphSeries;
+import com.jjoe64.graphview.Viewport;
 import com.jjoe64.graphview.series.DataPoint;
+import com.jjoe64.graphview.series.LineGraphSeries;
 
 import java.lang.ref.WeakReference;
 import java.text.NumberFormat;
@@ -37,8 +37,10 @@ public class MainActivity extends Activity {
     private EditText fileNameText;
     private MyHandler mHandler;
     private GraphView graph;
-    private BarGraphSeries<DataPoint> dataSeries;
+    private LineGraphSeries<DataPoint> dataSeries;
     private boolean canUnbind;
+    //A variable to keep track of the last X point in the graph
+    private double lastGraphX;
 
     /**
      * Receive the UsbService notifications and display a Toast message to inform the current
@@ -98,7 +100,7 @@ public class MainActivity extends Activity {
         //Initialize the widgets
         fileNameText = (EditText) findViewById(R.id.fileNameView);
         graph = (GraphView) findViewById(R.id.graph);
-        dataSeries = new BarGraphSeries<>();
+        dataSeries = new LineGraphSeries<>();
         setGraphOptions();
         graph.addSeries(dataSeries);
 
@@ -113,7 +115,7 @@ public class MainActivity extends Activity {
     @Override
     public void onStop() {
         super.onStop();
-       // unregisterReceiver(mUsbReceiver);
+        unregisterReceiver(mUsbReceiver);
         unbindService();
 
     }
@@ -123,40 +125,29 @@ public class MainActivity extends Activity {
      * so that its color changes, based on the value appended to it
      */
     private void setGraphOptions(){
+        Viewport graphViewPort = graph.getViewport();
         // set manual X bounds
-        graph.getViewport().setYAxisBoundsManual(true);
-        graph.getViewport().setMinY(0);
-        graph.getViewport().setMaxY(1024);
-
-        graph.getViewport().setXAxisBoundsManual(true);
-        graph.getViewport().setMinX(0);
-        graph.getViewport().setMaxX(2);
-
+        graphViewPort.setYAxisBoundsManual(true);
+        graphViewPort.setMinY(0);
+        graphViewPort.setMaxY(1050);
+        graphViewPort.setXAxisBoundsManual(true);
+        graphViewPort.computeScroll();
+        //Set background to black
+        graphViewPort.setBackgroundColor(Color.BLACK);
         // enable scaling and scrolling
-        graph.getViewport().setScalable(true);
-        graph.getViewport().setScalableY(true);
-        graph.getViewport().setScrollableY(true); // enables vertical scrolling
+        graphViewPort.setScalable(true);
+        graphViewPort.setScalableY(true);
+        graphViewPort.setScrollableY(true); // enables vertical scrolling
+        //Show the graph in green
+        dataSeries.setColor(Color.GREEN);
 
-        dataSeries.setValueDependentColor(new ValueDependentColor<DataPoint>() {
-            @Override
-            public int get(DataPoint dataPoint) {
-                if(dataPoint.getY() >= 800)
-                    return Color.GREEN;
-                else if(dataPoint.getY() < 800 && dataPoint.getY() >= 500)
-                    return Color.YELLOW;
-                else if(dataPoint.getY() <500 && dataPoint.getY() > 200)
-                    return Color.rgb(255,69,0);
-                else{
-                    return Color.RED;
-                }
-            }
-        });
     }
 
     /**
      * This method is called when the start button is pressed. It checks whether the EditText
      * has any text inside it. If it does, it adds a .txt extension to it, adds it to a Bundle
-     * and starts the service, with this bundle passed as an argument.
+     * and starts the service, with this bundle passed as an argument. Furthermore, it records the
+     * current time of the system as seconds, to be the start point of the graph's X axis.
      */
     public void onClickStart(View view){
         String fileName = fileNameText.getText().toString();
@@ -167,27 +158,41 @@ public class MainActivity extends Activity {
             fileName += ".txt";
             Bundle fileNameExtra = new Bundle();
             fileNameExtra.putString("file_name",fileName);
+            //Set the graph's X axis
+            lastGraphX = System.nanoTime()/ 1000000000.0;
             bindService(fileNameExtra); // Start UsbService(if it was not started before) and Bind it
         }
     }
 
+    /**
+     * When the Stop button is pressed, stop recording from the sensor
+     * @param view - the button view reference
+     */
     public void onClickStop(View view){
         unbindService();
     }
 
+    /**
+     * A pop up window that shows the terms and conditions of the application. Activates when the user
+     * clicks the Terms and Conditions text shown on the screen. Meanwhile, the applications continues
+     * running in the background.
+     * @param view
+     */
     public void showTsAndCs(View view) {
+        //Check the Android version to determine what the dialog would look like
         AlertDialog.Builder builder;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             builder = new AlertDialog.Builder(this, android.R.style.Theme_Material_Dialog_Alert);
         } else {
             builder = new AlertDialog.Builder(this);
         }
+        //Set the UI options of the dialog
         builder.setTitle("Terms & Conditions")
                 .setMessage("TODO")
                 .setPositiveButton("Proceed", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
-
+                        //Nothing happens when clicked
                     }
                 })
                 .setIcon(android.R.drawable.ic_dialog_info)
@@ -212,7 +217,7 @@ public class MainActivity extends Activity {
         }
         if(bindService(bindingIntent, usbConnection, Context.BIND_AUTO_CREATE)){
             canUnbind = true;
-            displayToast(this,"Connecting to the sensor");
+            displayToast(this,"Recording started");
         }
     }
 
@@ -225,9 +230,9 @@ public class MainActivity extends Activity {
         if(canUnbind){
             canUnbind = false;
             unbindService(usbConnection);
-            displayToast(this,"Disconnecting from the sensor");
+            displayToast(this,"Stopping recording");
         }else{
-            displayToast(this,"Sensor already disconnected");
+            displayToast(this,"Recording stopped");
         }
     }
 
@@ -266,15 +271,27 @@ public class MainActivity extends Activity {
             mActivity = new WeakReference<>(activity);
         }
 
+        /**
+         * This method executes every time new data is passed to the handler from the UsbService
+         * @param msg - the message sent from the UsbService
+         */
         @Override
         public void handleMessage(Message msg) {
-            if (msg.what ==UsbService.MESSAGE_FROM_SERIAL_PORT ) {
+            //Get the new X axis to be added to the graph - subtract the current time from the
+            //
+            double newGraphX =System.nanoTime()/ 100000000.0 - mActivity.get().lastGraphX;
+            //Check if the message is the one from the serial port
+            if (msg.what == UsbService.MESSAGE_FROM_SERIAL_PORT ) {
+                //Get the string object of it
                 String newData = (String) msg.obj;
                 try {
+                    //Try to parse it as an Integer
                     int numData = NumberFormat.getInstance().parse(newData).intValue();
-                    DataPoint dp = new DataPoint(2, numData);
+                    //Create a new graph data point with the X axis set to the new X
+                    DataPoint dp = new DataPoint(newGraphX, numData);
                     Log.d("Data point X", String.valueOf(dp.getX()));
                     Log.d("Data point Y", String.valueOf(dp.getY()));
+                    //Get the series reference from the activity and append the data to it
                     mActivity.get().dataSeries.appendData(dp,true,40);
                     Log.d("Appending to graph", newData.toString());
 
