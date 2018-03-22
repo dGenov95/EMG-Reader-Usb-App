@@ -71,14 +71,17 @@ public class UsbService extends Service {
         @Override
         public void onReceivedData(byte[] arg0) {
             String data = new String(arg0);
-            if(mDataWriter != null) {
-                mDataWriter.writeToFile(data);
+//            String[]separatedData = data.split("\\r?\\n");
+
+                if(mDataWriter != null) {
+                    mDataWriter.writeToFile(data);
+                }
+
+                if (mHandler != null) {
+                    mHandler.obtainMessage(MESSAGE_FROM_SERIAL_PORT, data).sendToTarget();
+                }
             }
 
-            if (mHandler != null) {
-                mHandler.obtainMessage(MESSAGE_FROM_SERIAL_PORT, data).sendToTarget();
-            }
-        }
     };
 
 
@@ -142,7 +145,7 @@ public class UsbService extends Service {
      * as a parameter, which can be used to get extra information passed from the component. It executes
      * every time the bindService method is called.
      * @param intent - the Intent passed from the component binding to the service
-     * @return - an IBiner implementation.
+     * @return - an IBinder implementation.
      */
     @Override
     public IBinder onBind(Intent intent) {
@@ -249,13 +252,11 @@ public class UsbService extends Service {
         usbManager.requestPermission(device, mPendingIntent);
     }
 
-    /**-------------------------------------------------------------------------------------------*/
-
     /**
      * A binder class to get the UsbService - needed for the activity to bind to the service
      */
-    public class UsbBinder extends Binder {
-        public UsbService getUsbService() {
+    class UsbBinder extends Binder {
+        UsbService getUsbService() {
             return UsbService.this;
         }
     }

@@ -22,7 +22,7 @@
         android:layout_alignParentLeft="true"
         android:layout_alignParentStart="true"
         android:layout_below="@+id/fileNameView"
-        android:onClick="onClickStart"
+        android:onClick="onButtonStartClick"
         android:text="@string/start"
         android:textAlignment="center"
         android:textSize="20sp" />
@@ -34,7 +34,7 @@
         android:layout_alignParentEnd="true"
         android:layout_alignParentRight="true"
         android:layout_below="@+id/fileNameView"
-        android:onClick="onClickStop"
+        android:onClick="onButtonStopClick"
         android:text="@string/stop_text"
         android:textSize="20sp" />
 

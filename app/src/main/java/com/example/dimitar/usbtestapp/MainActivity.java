@@ -7,10 +7,12 @@ import android.graphics.Color;
 import android.os.*;
 import android.util.Log;
 import android.view.View;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
 
 import com.jjoe64.graphview.GraphView;
+import com.jjoe64.graphview.LegendRenderer;
 import com.jjoe64.graphview.Viewport;
 import com.jjoe64.graphview.series.DataPoint;
 import com.jjoe64.graphview.series.LineGraphSeries;
@@ -33,6 +35,7 @@ public class MainActivity extends Activity {
     private EditText fileNameText;
     private UsbHandler mHandler;
     private GraphView graph;
+    private Button startButton,stopButton;
     private LineGraphSeries<DataPoint> dataSeries;
     private boolean canUnbind;
     //A variable to keep track of the last X point in the graph
@@ -98,6 +101,8 @@ public class MainActivity extends Activity {
         //Initialize the widgets
         fileNameText = findViewById(R.id.fileNameView);
         graph = findViewById(R.id.graph);
+        startButton = findViewById(R.id.startButton);
+        stopButton = findViewById(R.id.stopButton);
         dataSeries = new LineGraphSeries<>();
         setGraphOptions();
         graph.addSeries(dataSeries);
@@ -123,20 +128,32 @@ public class MainActivity extends Activity {
      * so that its color changes, based on the value appended to it
      */
     private void setGraphOptions(){
+
+        //Set the graph's X axis
+        graphX = System.nanoTime()/ 1000000000.0;
+        //Set the view port options
         Viewport graphViewPort = graph.getViewport();
-        graphViewPort.setMaxY(1024);
-        // set manual X bounds
+        //Max Y value will be 1500
+        graphViewPort.setMaxY(1500);
+        //Set manual Y bounds
         graphViewPort.setYAxisBoundsManual(true);
-        graphViewPort.setXAxisBoundsManual(true);
-        graphViewPort.computeScroll();
+        //graphViewPort.setXAxisBoundsManual(true);
         //Set background to black
         graphViewPort.setBackgroundColor(Color.BLACK);
         // enable scaling and scrolling
         graphViewPort.setScalable(true);
         graphViewPort.setScalableY(true);
         graphViewPort.setScrollableY(true); // enables vertical scrolling
-        //Show the graph in green
+        //Show the graph data in green
         dataSeries.setColor(Color.GREEN);
+        //Show a legend at the top right
+        dataSeries.setTitle("Muscle Activity");
+        graph.getLegendRenderer().setVisible(true);
+        graph.getLegendRenderer().setAlign(LegendRenderer.LegendAlign.TOP);
+
+        graph.setTitle("Muscle Activity Graph");
+        graph.getGridLabelRenderer().setHumanRounding(false);
+
 
     }
 
@@ -146,17 +163,20 @@ public class MainActivity extends Activity {
      * and starts the service, with this bundle passed as an argument. Furthermore, it records the
      * current time of the system as seconds, to be the start point of the graph's X axis.
      */
-    public void onClickStart(View view){
+    public void onButtonStartClick(View view){
         String fileName = fileNameText.getText().toString();
         if(fileName.isEmpty() || fileName.equals("")){
             displayToast(this,"Please provide a file name to save the sensor data");
         }else{
+            if(!stopButton.isEnabled()){
+                stopButton.setEnabled(true);
+            }
+            fileNameText.setVisibility(View.GONE);
+            startButton.setEnabled(false);
             fileName = fileName.trim();
             fileName += ".txt";
             Bundle fileNameExtra = new Bundle();
             fileNameExtra.putString("file_name",fileName);
-            //Set the graph's X axis
-            graphX = System.nanoTime()/ 1000000000.0;
             bindService(fileNameExtra); // Start UsbService(if it was not started before) and Bind it
         }
     }
@@ -165,7 +185,12 @@ public class MainActivity extends Activity {
      * When the Stop button is pressed, stop recording from the sensor
      * @param view - the button view reference
      */
-    public void onClickStop(View view){
+    public void onButtonStopClick(View view){
+        if(!startButton.isEnabled()){
+            startButton.setEnabled(true);
+        }
+        fileNameText.setVisibility(View.VISIBLE);
+        stopButton.setEnabled(false);
         unbindService();
     }
 
