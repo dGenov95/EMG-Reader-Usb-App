@@ -99,13 +99,9 @@ public class MainActivity extends Activity {
         setContentView(R.layout.activity_main);
         mHandler = new UsbHandler(this);
         //Initialize the widgets
-        fileNameText = findViewById(R.id.fileNameView);
-        graph = findViewById(R.id.graph);
-        startButton = findViewById(R.id.startButton);
-        stopButton = findViewById(R.id.stopButton);
-        dataSeries = new LineGraphSeries<>();
+        setupWidgets();
+        //Customize the graph
         setGraphOptions();
-        graph.addSeries(dataSeries);
 
     }
 
@@ -118,9 +114,23 @@ public class MainActivity extends Activity {
     @Override
     public void onStop() {
         super.onStop();
+        //Stop receiving the sensor data
         unregisterReceiver(mUsbReceiver);
         unbindService();
 
+    }
+
+    private void setupWidgets(){
+        //Initialize the widgets
+        fileNameText = findViewById(R.id.fileNameView);
+        graph = findViewById(R.id.graph);
+        startButton = findViewById(R.id.startButton);
+        stopButton = findViewById(R.id.stopButton);
+        //Initialize the Graph Series and add them to the graph
+        dataSeries = new LineGraphSeries<>();
+        graph.addSeries(dataSeries);
+        //Disable the stop button when the app is started
+        stopButton.setEnabled(false);
     }
 
     /**
@@ -128,31 +138,31 @@ public class MainActivity extends Activity {
      * so that its color changes, based on the value appended to it
      */
     private void setGraphOptions(){
-
+        Viewport graphViewPort = graph.getViewport();
+        LegendRenderer graphLegend = graph.getLegendRenderer();
         //Set the graph's X axis
         graphX = System.nanoTime()/ 1000000000.0;
+        //Name the graph and the series
+        graph.setTitle("Muscle Activity Graph");
+        dataSeries.setTitle("Muscle Activity");
         //Set the view port options
-        Viewport graphViewPort = graph.getViewport();
-        //Max Y value will be 1500
-        graphViewPort.setMaxY(1500);
-        //Set manual Y bounds
+        // Scaling and scrolling
+        graphViewPort.setScalable(true);
+        //X & Y axis options
+        graphViewPort.setMaxY(1024);
         graphViewPort.setYAxisBoundsManual(true);
-        //graphViewPort.setXAxisBoundsManual(true);
         //Set background to black
         graphViewPort.setBackgroundColor(Color.BLACK);
-        // enable scaling and scrolling
-        graphViewPort.setScalable(true);
-        graphViewPort.setScalableY(true);
-        graphViewPort.setScrollableY(true); // enables vertical scrolling
+        //Set the legend options
+        //Show a legend at the top right
+        graphLegend.setVisible(true);
+        graphLegend.setAlign(LegendRenderer.LegendAlign.TOP);
+        graphLegend.setTextColor(Color.WHITE);
+
         //Show the graph data in green
         dataSeries.setColor(Color.GREEN);
-        //Show a legend at the top right
-        dataSeries.setTitle("Muscle Activity");
-        graph.getLegendRenderer().setVisible(true);
-        graph.getLegendRenderer().setAlign(LegendRenderer.LegendAlign.TOP);
 
-        graph.setTitle("Muscle Activity Graph");
-        graph.getGridLabelRenderer().setHumanRounding(false);
+        graph.getGridLabelRenderer().setNumVerticalLabels(3);
 
 
     }
@@ -239,7 +249,7 @@ public class MainActivity extends Activity {
         }
         if(bindService(bindingIntent, usbConnection, Context.BIND_AUTO_CREATE)){
             canUnbind = true;
-            displayToast(this,"Recording started");
+            displayToast(this,"Starting Recording");
         }
     }
 
@@ -253,8 +263,6 @@ public class MainActivity extends Activity {
             canUnbind = false;
             unbindService(usbConnection);
             displayToast(this,"Stopping recording");
-        }else{
-            displayToast(this,"Recording stopped");
         }
     }
 
