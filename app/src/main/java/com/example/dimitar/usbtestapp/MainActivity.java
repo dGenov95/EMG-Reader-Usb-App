@@ -14,6 +14,7 @@ import android.widget.Toast;
 import com.jjoe64.graphview.GraphView;
 import com.jjoe64.graphview.LegendRenderer;
 import com.jjoe64.graphview.Viewport;
+import com.jjoe64.graphview.series.BarGraphSeries;
 import com.jjoe64.graphview.series.DataPoint;
 import com.jjoe64.graphview.series.LineGraphSeries;
 
@@ -37,7 +38,7 @@ public class MainActivity extends Activity {
     private UsbHandler mHandler;
     private GraphView graph;
     private Button startButton,stopButton;
-    private LineGraphSeries<DataPoint> dataSeries;
+    private BarGraphSeries<DataPoint> dataSeries;
     private boolean canUnbind;
     //A variable to keep track of the last X point in the graph
     private double graphX;
@@ -125,7 +126,7 @@ public class MainActivity extends Activity {
         startButton = findViewById(R.id.startButton);
         stopButton = findViewById(R.id.stopButton);
         //Initialize the Graph Series and add them to the graph
-        dataSeries = new LineGraphSeries<>();
+        dataSeries = new BarGraphSeries<>();
         graph.addSeries(dataSeries);
         //Disable the stop button when the app is started
         stopButton.setEnabled(false);
@@ -137,19 +138,20 @@ public class MainActivity extends Activity {
     private void setGraphOptions(){
         Viewport graphViewPort = graph.getViewport();
         LegendRenderer graphLegend = graph.getLegendRenderer();
-        //Set the graph's X axis
-        graphX = System.nanoTime()/ 1000000000.0;
         //Name the graph and the series
         graph.setTitle("Muscle Activity Graph");
-        dataSeries.setTitle("Muscle Activity");
+        dataSeries.setTitle("Muscle Activity Level");
         //Set the view port options
         // Scaling and scrolling
         graphViewPort.setScalable(true);
         //X & Y axis options
-        graphViewPort.setMaxY(1024);
+        graphViewPort.setMaxY(1200);
         graphViewPort.setYAxisBoundsManual(true);
         //Set background to black
         graphViewPort.setBackgroundColor(Color.BLACK);
+        graphViewPort.setMinX(0);
+        graphViewPort.setMaxX(2);
+        graphViewPort.setXAxisBoundsManual(true);
         //Set the legend options
         //Show a legend at the top right
         graphLegend.setVisible(true);
@@ -298,9 +300,6 @@ public class MainActivity extends Activity {
          */
         @Override
         public void handleMessage(Message msg) {
-            //Get the new X axis to be added to the graph - subtract the current time in seconds
-            // from the initial X time
-            double newGraphX =System.nanoTime()/ 100000000.0 - mActivity.get().graphX;
             //Check if the message is the one from the serial port
             if (msg.what == UsbService.MESSAGE_FROM_SERIAL_PORT ) {
                 //Get the string object of it
@@ -308,9 +307,8 @@ public class MainActivity extends Activity {
                 try {
                     //Try to parse it as an Integer
                     int graphY = NumberFormat.getInstance().parse(newData).intValue();
-                    //Create a new graph data point with the X axis set to the new X
-                    DataPoint dp = new DataPoint(newGraphX, graphY);
-                    Log.d("Data point X", String.valueOf(dp.getX()));
+                    //Create a new graph data point with the Y axis set to the new Y
+                    DataPoint dp = new DataPoint(1, graphY);
                     Log.d("Data point Y", String.valueOf(dp.getY()));
                     //Get the series reference from the activity and append the data to it
                     mActivity.get().dataSeries.appendData(dp,true,40);
