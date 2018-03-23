@@ -141,7 +141,7 @@ public class MainActivity extends Activity {
         graphX = System.nanoTime()/ 1000000000.0;
         //Name the graph and the series
         graph.setTitle("Muscle Activity Graph");
-        dataSeries.setTitle("Muscle Activity");
+        dataSeries.setTitle("Muscle Activity Level");
         //Set the view port options
         // Scaling and scrolling
         graphViewPort.setScalable(true);
