@@ -27,9 +27,10 @@ import java.util.Set;
  * user events, responds to them accordingly and shows the sensor data on the screen.
  * It contains an inner class, responsible for handling the data coming from the UsbService
  * and has all the methods that correspond to a certain user action (pressing buttons etc.)
+ * Reference code:
+ * https://github.com/felHR85/UsbSerial/blob/master/examplesync/src/main/java/com/felhr/serialportexamplesync/MainActivity.java
  */
 public class MainActivity extends Activity {
-
 
     private UsbService usbService;
     private EditText fileNameText;
@@ -40,10 +41,11 @@ public class MainActivity extends Activity {
     private boolean canUnbind;
     //A variable to keep track of the last X point in the graph
     private double graphX;
-
     /**
      * Receive the UsbService notifications and display a Toast message to inform the current
      * status of the Usb
+     * Reference code:
+     * https://github.com/felHR85/UsbSerial/blob/master/examplesync/src/main/java/com/felhr/serialportexamplesync/MainActivity.java
      */
     private final BroadcastReceiver mUsbReceiver = new BroadcastReceiver() {
         @Override
@@ -69,11 +71,12 @@ public class MainActivity extends Activity {
             }
         }
     };
-
     /**
      * The service connection object will form the connection between the activity and the UsbService
      * It will call the onBind method and receives the IBinder object returned from it as arg1.
      * Then the usbService reference is cast from the Binder class's getUsbService method.
+     * Reference code:
+     * https://github.com/felHR85/UsbSerial/blob/master/examplesync/src/main/java/com/felhr/serialportexamplesync/MainActivity.java
      */
     private final ServiceConnection usbConnection = new ServiceConnection() {
 
@@ -91,8 +94,6 @@ public class MainActivity extends Activity {
 
         }
     };
-
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -104,13 +105,11 @@ public class MainActivity extends Activity {
         setGraphOptions();
 
     }
-
     @Override
     public void onResume() {
         super.onResume();
         setFilters();  // Start listening for notifications from UsbService
     }
-
     @Override
     public void onStop() {
         super.onStop();
@@ -119,7 +118,6 @@ public class MainActivity extends Activity {
         unbindService();
 
     }
-
     private void setupWidgets(){
         //Initialize the widgets
         fileNameText = findViewById(R.id.fileNameView);
@@ -132,7 +130,6 @@ public class MainActivity extends Activity {
         //Disable the stop button when the app is started
         stopButton.setEnabled(false);
     }
-
     /**
      * A method that sets the graph properties. It also configures the graph
      * so that its color changes, based on the value appended to it
@@ -158,15 +155,12 @@ public class MainActivity extends Activity {
         graphLegend.setVisible(true);
         graphLegend.setAlign(LegendRenderer.LegendAlign.TOP);
         graphLegend.setTextColor(Color.WHITE);
-
         //Show the graph data in green
         dataSeries.setColor(Color.GREEN);
-
         graph.getGridLabelRenderer().setNumVerticalLabels(3);
 
 
     }
-
     /**
      * This method is called when the start button is pressed. It checks whether the EditText
      * has any text inside it. If it does, it adds a .txt extension to it, adds it to a Bundle
@@ -190,7 +184,6 @@ public class MainActivity extends Activity {
             bindService(fileNameExtra); // Start UsbService(if it was not started before) and Bind it
         }
     }
-
     /**
      * When the Stop button is pressed, stop recording from the sensor
      * @param view - the button view reference
@@ -203,7 +196,6 @@ public class MainActivity extends Activity {
         stopButton.setEnabled(false);
         unbindService();
     }
-
     /**
      * A pop up window that shows the terms and conditions of the application. Activates when the user
      * clicks the Terms and Conditions text shown on the screen. Meanwhile, the applications continues
@@ -230,7 +222,6 @@ public class MainActivity extends Activity {
                 .setIcon(android.R.drawable.ic_dialog_info)
                 .show();
     }
-
     /**
      * This method is intended to start the service. It checks if any extras are passed. If so, it
      * adds all of them to the binding intent and tries to bind to the service. If this is successful
@@ -252,7 +243,6 @@ public class MainActivity extends Activity {
             displayToast(this,"Starting Recording");
         }
     }
-
     /**
      * The method is used to safely unbind from an already bound service. It checks whether it is
      * already bound. If so, it unbinds from it and displays a toast message to the user. Otherwise
@@ -265,9 +255,10 @@ public class MainActivity extends Activity {
             displayToast(this,"Stopping recording");
         }
     }
-
     /**
      * Sets the intent filters for the broadcast receiver
+     * Reference code:
+     * https://github.com/felHR85/UsbSerial/blob/master/examplesync/src/main/java/com/felhr/serialportexamplesync/MainActivity.java
      */
     private void setFilters() {
         IntentFilter filter = new IntentFilter();
@@ -278,7 +269,6 @@ public class MainActivity extends Activity {
         filter.addAction(UsbService.ACTION_USB_PERMISSION_NOT_GRANTED);
         registerReceiver(mUsbReceiver, filter);
     }
-
     /**
      * A helper function to display a toast message.
      * @param context - the context on which to display it
@@ -287,14 +277,14 @@ public class MainActivity extends Activity {
     private void displayToast(Context context,String message){
         Toast.makeText(context,message,Toast.LENGTH_SHORT).show();
     }
-
-
     /**
-     * This handler will be passed to UsbService. Data received from serial port is displayed through this handler
+     * This handler will be passed to UsbService. Data received from serial port is displayed through
+     * this handler.
+     * Reference Code:
+     * https://github.com/felHR85/UsbSerial/blob/master/examplesync/src/main/java/com/felhr/serialportexamplesync/MainActivity.java
      */
     private static class UsbHandler extends Handler {
         private final WeakReference<MainActivity> mActivity;
-
         /**
          * The constructor of the Handler object.
          * @param activity - the reference to the MainActivity class
@@ -302,7 +292,6 @@ public class MainActivity extends Activity {
         UsbHandler(MainActivity activity) {
             mActivity = new WeakReference<>(activity);
         }
-
         /**
          * This method executes every time new data is passed to the handler from the UsbService
          * @param msg - the message sent from the UsbService

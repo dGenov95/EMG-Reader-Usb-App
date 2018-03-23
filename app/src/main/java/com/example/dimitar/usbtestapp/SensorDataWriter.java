@@ -22,7 +22,6 @@ public class SensorDataWriter {
     public SensorDataWriter(String mFileName){
         mFile = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),mFileName);
     }
-
     /**
      * This method writes data to the File object. It uses a BufferedWriter and appends the passed
      * data to the previous content written in the File.
@@ -30,7 +29,6 @@ public class SensorDataWriter {
      */
     public  void writeToFile(String mData){
         if(isExternalStorageWritable()){
-
             try{
                 //A BufferedWriter object is created. A FileWriter of the File that is going to be
                 // written is passed to its constructor, specifying that the data is going to be
@@ -47,7 +45,6 @@ public class SensorDataWriter {
             }
         }
     }
-
     /**
      *  Checks if external storage is available for read and write
      */

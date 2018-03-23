@@ -30,6 +30,8 @@ import java.util.Map;
  * TinyDuino device. If such is found, it tries to open a connection and read the data coming from it.
  * Whenever new data is received, it is passed to a Handler object which allows the Activity
  * that is binding to the UsbService to update its UI.
+ * Reference Code:
+ * https://github.com/felHR85/UsbSerial/blob/master/examplesync/src/main/java/com/felhr/serialportexamplesync/UsbService.java
  */
 
 public class UsbService extends Service {
@@ -47,10 +49,8 @@ public class UsbService extends Service {
     private static final int BAUD_RATE = 9600; // BaudRate of the connection
     public static final int MESSAGE_FROM_SERIAL_PORT = 0;
     private static final int TINY_DUINO_VID = 1027; //The particular Vendor ID of the TinyDuino
-
     //The IBinder object used for binding the service
     private IBinder binder = new UsbBinder();
-
     //The variables needed for the USB connection, its data passing to the Activity and
     //writing to a separate file
     private Context context;
@@ -62,33 +62,31 @@ public class UsbService extends Service {
     private SensorDataWriter mDataWriter;
     //A variable to track if the connection is opened
     private boolean serialPortOpened;
-
     /**
      *  Data received from the serial port will be received here. The
      *  byte stream is converted to String and send to UI thread to be treated there.
+     *  Reference code:
+     *  https://github.com/felHR85/UsbSerial/blob/master/examplesync/src/main/java/com/felhr/serialportexamplesync/UsbService.java
      */
     private UsbSerialInterface.UsbReadCallback mCallback = new UsbSerialInterface.UsbReadCallback() {
         @Override
         public void onReceivedData(byte[] arg0) {
             String data = new String(arg0);
-//            String[]separatedData = data.split("\\r?\\n");
-
-                if(mDataWriter != null) {
-                    mDataWriter.writeToFile(data);
-                }
-
-                if (mHandler != null) {
-                    mHandler.obtainMessage(MESSAGE_FROM_SERIAL_PORT, data).sendToTarget();
-                }
+            if(mDataWriter != null) {
+                mDataWriter.writeToFile(data);
             }
+            if (mHandler != null) {
+                mHandler.obtainMessage(MESSAGE_FROM_SERIAL_PORT, data).sendToTarget();
+            }
+        }
 
     };
-
-
     /**
      * This broadcast receiver will listen for system notifications. In particular it will listen
      * for USB events - USB Permission,USB attached/detached etc. It will deal with each of them
      * accordingly.
+     * Reference code:
+     * https://github.com/felHR85/UsbSerial/blob/master/examplesync/src/main/java/com/felhr/serialportexamplesync/UsbService.java
      */
     private final BroadcastReceiver usbReceiver = new BroadcastReceiver() {
         @Override
@@ -121,7 +119,6 @@ public class UsbService extends Service {
             }
         }
     };
-
     /**
      * onCreate will be executed when the service is started. It runs once and
      * initializes the variables. An IntentFilter to listen for incoming Intents
@@ -139,7 +136,6 @@ public class UsbService extends Service {
         //Search for the attached TinyDuino device
         findDevice();
     }
-
     /**
      * This method is called when another component calls the bindService method. It passes an intent
      * as a parameter, which can be used to get extra information passed from the component. It executes
@@ -157,7 +153,6 @@ public class UsbService extends Service {
         }
         return binder;
     }
-
     @Override
     public void onDestroy() {
         super.onDestroy();
@@ -167,7 +162,6 @@ public class UsbService extends Service {
         //And unregister the broadcast receiver
         unregisterReceiver(usbReceiver);
     }
-
     /**
      * This method is a setter for the data Handler, used to transfer data to the Activity thread.
      * @param mHandler - the handler passed from the Activity thread
@@ -175,18 +169,18 @@ public class UsbService extends Service {
     public void setHandler(Handler mHandler) {
         this.mHandler = mHandler;
     }
-
     /**
      * This method gets all the devices connected to the device and checks the vendor ID of each one.
      * It is looking for the particular Tiny Duino vendor ID, and once it finds it, it asks the user
      * for permission to use the device. If no such device was found, an intent indicating that is
      * sent.
+     * Reference code:
+     * https://github.com/felHR85/UsbSerial/blob/master/examplesync/src/main/java/com/felhr/serialportexamplesync/UsbService.java
      */
     private void findDevice() {
         //This snippet will try to open the TinyDuino device connected
         //Get all the attached devices list
         HashMap<String, UsbDevice> usbDevices = usbManager.getDeviceList();
-
         if (!usbDevices.isEmpty()) { //Checks if there are any devices attached at all
             //A variable to indicate whether to keep looking for TinyDuino or not
             boolean keep = true;
@@ -230,9 +224,10 @@ public class UsbService extends Service {
         if(serialPortOpened) serialPort.close();
         serialPortOpened = false;
     }
-
     /**
      * This method registers an intent filter to listen to certain ,USB related, intents.
+     * Reference code:
+     * https://github.com/felHR85/UsbSerial/blob/master/examplesync/src/main/java/com/felhr/serialportexamplesync/UsbService.java
      */
     private void setIntentFilters() {
         IntentFilter filter = new IntentFilter();
@@ -242,16 +237,16 @@ public class UsbService extends Service {
         filter.addAction(ACTION_USB_ATTACHED); //when to usb is attached
         registerReceiver(usbReceiver, filter);
     }
-
     /**
      * A helper method to ask the user if it is okay to access the usb device.
      * The response will be received in the broadcast receiver and handled appropriately.
+     * Reference code:
+     * https://github.com/felHR85/UsbSerial/blob/master/examplesync/src/main/java/com/felhr/serialportexamplesync/UsbService.java
      */
     private void requestUserPermission() {
         PendingIntent mPendingIntent = PendingIntent.getBroadcast(this, 0, new Intent(ACTION_USB_PERMISSION), 0);
         usbManager.requestPermission(device, mPendingIntent);
     }
-
     /**
      * A binder class to get the UsbService - needed for the activity to bind to the service
      */
@@ -260,9 +255,10 @@ public class UsbService extends Service {
             return UsbService.this;
         }
     }
-
     /**
      * A Thread used to connect to the usb serial port - running separately from the main UI thread.
+     * Reference code:
+     * https://github.com/felHR85/UsbSerial/blob/master/examplesync/src/main/java/com/felhr/serialportexamplesync/UsbService.java
      */
     private class ConnectionThread extends Thread {
         @Override
@@ -283,7 +279,6 @@ public class UsbService extends Service {
                     Intent readyIntent = new Intent(ACTION_USB_READY);
                     context.sendBroadcast(readyIntent);
                 }
-
             } else {
                 // No driver for current device - could not be loaded
                 Intent notSupportedIntent = new Intent(ACTION_USB_NOT_SUPPORTED);
