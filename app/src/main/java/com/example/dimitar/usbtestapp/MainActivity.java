@@ -12,6 +12,7 @@ import android.widget.EditText;
 import android.widget.Toast;
 
 import com.jjoe64.graphview.GraphView;
+import com.jjoe64.graphview.GridLabelRenderer;
 import com.jjoe64.graphview.LegendRenderer;
 import com.jjoe64.graphview.Viewport;
 import com.jjoe64.graphview.series.BarGraphSeries;
@@ -138,6 +139,7 @@ public class MainActivity extends Activity {
     private void setGraphOptions(){
         Viewport graphViewPort = graph.getViewport();
         LegendRenderer graphLegend = graph.getLegendRenderer();
+        GridLabelRenderer graphGrid = graph.getGridLabelRenderer();
         //Name the graph and the series
         graph.setTitle("Muscle Activity Graph");
         dataSeries.setTitle("Muscle Activity Level");
@@ -145,11 +147,11 @@ public class MainActivity extends Activity {
         // Scaling and scrolling
         graphViewPort.setScalable(true);
         //X & Y axis options
-        graphViewPort.setMaxY(1200);
+        graphViewPort.setMaxY(1024);
         graphViewPort.setYAxisBoundsManual(true);
         //Set background to black
         graphViewPort.setBackgroundColor(Color.BLACK);
-        graphViewPort.setMinX(0);
+        graphViewPort.setMinX(2);
         graphViewPort.setMaxX(2);
         graphViewPort.setXAxisBoundsManual(true);
         //Set the legend options
@@ -159,7 +161,11 @@ public class MainActivity extends Activity {
         graphLegend.setTextColor(Color.WHITE);
         //Show the graph data in green
         dataSeries.setColor(Color.GREEN);
-        graph.getGridLabelRenderer().setNumVerticalLabels(3);
+        //Set the grid options
+        graphGrid.setNumVerticalLabels(3);
+        graphGrid.setGridStyle(GridLabelRenderer.GridStyle.HORIZONTAL);
+        graphGrid.setGridColor(Color.RED);
+        graphGrid.setHorizontalLabelsVisible(false);
 
 
     }
