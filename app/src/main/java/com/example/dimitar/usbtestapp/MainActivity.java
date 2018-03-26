@@ -12,6 +12,7 @@ import android.widget.EditText;
 import android.widget.Toast;
 
 import com.jjoe64.graphview.GraphView;
+import com.jjoe64.graphview.GridLabelRenderer;
 import com.jjoe64.graphview.LegendRenderer;
 import com.jjoe64.graphview.Viewport;
 import com.jjoe64.graphview.series.DataPoint;
@@ -137,8 +138,9 @@ public class MainActivity extends Activity {
     private void setGraphOptions(){
         Viewport graphViewPort = graph.getViewport();
         LegendRenderer graphLegend = graph.getLegendRenderer();
+        GridLabelRenderer graphGrid = graph.getGridLabelRenderer();
         //Set the graph's X axis
-        graphX = System.nanoTime()/ 1000000000.0;
+        graphX = System.currentTimeMillis()/ 1000.0;
         //Name the graph and the series
         graph.setTitle("Muscle Activity Graph");
         dataSeries.setTitle("Muscle Activity Level");
@@ -146,6 +148,7 @@ public class MainActivity extends Activity {
         // Scaling and scrolling
         graphViewPort.setScalable(true);
         //X & Y axis options
+        graphViewPort.setMaxY(0);
         graphViewPort.setMaxY(1024);
         graphViewPort.setYAxisBoundsManual(true);
         //Set background to black
@@ -156,8 +159,12 @@ public class MainActivity extends Activity {
         graphLegend.setAlign(LegendRenderer.LegendAlign.TOP);
         graphLegend.setTextColor(Color.WHITE);
         //Show the graph data in green
-        dataSeries.setColor(Color.GREEN);
-        graph.getGridLabelRenderer().setNumVerticalLabels(3);
+        dataSeries.setColor(Color.rgb(136, 255, 77));
+        //Set the grid options
+        graphGrid.setNumVerticalLabels(5);
+        //graphGrid.setHorizontalLabelsVisible(false);
+        graphGrid.setGridStyle(GridLabelRenderer.GridStyle.HORIZONTAL);
+        graphGrid.setGridColor(Color.WHITE);
 
 
     }
@@ -172,11 +179,6 @@ public class MainActivity extends Activity {
         if(fileName.isEmpty() || fileName.equals("")){
             displayToast(this,"Please provide a file name to save the sensor data");
         }else{
-            if(!stopButton.isEnabled()){
-                stopButton.setEnabled(true);
-            }
-            fileNameText.setVisibility(View.GONE);
-            startButton.setEnabled(false);
             fileName = fileName.trim();
             fileName += ".txt";
             Bundle fileNameExtra = new Bundle();
@@ -189,11 +191,6 @@ public class MainActivity extends Activity {
      * @param view - the button view reference
      */
     public void onButtonStopClick(View view){
-        if(!startButton.isEnabled()){
-            startButton.setEnabled(true);
-        }
-        fileNameText.setVisibility(View.VISIBLE);
-        stopButton.setEnabled(false);
         unbindService();
     }
     /**
@@ -225,7 +222,8 @@ public class MainActivity extends Activity {
     /**
      * This method is intended to start the service. It checks if any extras are passed. If so, it
      * adds all of them to the binding intent and tries to bind to the service. If this is successful
-     * a toast message is shown to the user to indicate that.
+     * a toast message is shown to the user to indicate that, the stop button is enabled to use and the
+     * file name text disappears
      * @param extras - any extras that the service might need
      */
     private void bindService(Bundle extras) {
@@ -239,7 +237,15 @@ public class MainActivity extends Activity {
             }
         }
         if(bindService(bindingIntent, usbConnection, Context.BIND_AUTO_CREATE)){
+            //Indicate that the service can now unbind
             canUnbind = true;
+            //Set the widgets status
+            if(!stopButton.isEnabled()){
+                stopButton.setEnabled(true);
+            }
+            startButton.setEnabled(false);
+            fileNameText.setVisibility(View.GONE);
+
             displayToast(this,"Starting Recording");
         }
     }
@@ -247,10 +253,19 @@ public class MainActivity extends Activity {
      * The method is used to safely unbind from an already bound service. It checks whether it is
      * already bound. If so, it unbinds from it and displays a toast message to the user. Otherwise
      * a toast message to indicate that the service is already unbound is shown.
+     * Furthermore, the start button is disabled until the service is stopped with the stop button
+     * and the text field for the file name appears.
      */
     private void unbindService(){
         if(canUnbind){
+            //Indicate that the service is already unbound
             canUnbind = false;
+            //Set the widgets status
+            if(!startButton.isEnabled()){
+                startButton.setEnabled(true);
+            }
+            fileNameText.setVisibility(View.VISIBLE);
+            stopButton.setEnabled(false);
             unbindService(usbConnection);
             displayToast(this,"Stopping recording");
         }
@@ -300,7 +315,7 @@ public class MainActivity extends Activity {
         public void handleMessage(Message msg) {
             //Get the new X axis to be added to the graph - subtract the current time in seconds
             // from the initial X time
-            double newGraphX =System.nanoTime()/ 100000000.0 - mActivity.get().graphX;
+            double newGraphX = System.currentTimeMillis()/ 1000.0 - mActivity.get().graphX;
             //Check if the message is the one from the serial port
             if (msg.what == UsbService.MESSAGE_FROM_SERIAL_PORT ) {
                 //Get the string object of it
