@@ -160,6 +160,7 @@ public class MainActivity extends Activity {
         graphLegend.setTextColor(Color.WHITE);
         //Show the graph data in green
         dataSeries.setColor(Color.rgb(136, 255, 77));
+        dataSeries.setDrawBackground(true);
         //Set the grid options
         graphGrid.setNumVerticalLabels(5);
         //graphGrid.setHorizontalLabelsVisible(false);
@@ -209,7 +210,7 @@ public class MainActivity extends Activity {
         }
         //Set the UI options of the dialog
         builder.setTitle("Terms & Conditions")
-                .setMessage("TODO")
+                .setMessage("Text to be added...")
                 .setPositiveButton("Proceed", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
