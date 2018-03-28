@@ -161,6 +161,8 @@ public class MainActivity extends Activity {
         //Show the graph data in green
         dataSeries.setColor(Color.rgb(136, 255, 77));
         dataSeries.setDrawBackground(true);
+        dataSeries.setThickness(2);
+
         //Set the grid options
         graphGrid.setNumVerticalLabels(5);
         //graphGrid.setHorizontalLabelsVisible(false);
