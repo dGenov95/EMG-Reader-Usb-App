@@ -212,7 +212,7 @@ public class MainActivity extends Activity {
         }
         //Set the UI options of the dialog
         builder.setTitle("Terms & Conditions")
-                .setMessage("Text to be added...")
+                .setMessage(R.string.terms_and_conditions)
                 .setPositiveButton("Proceed", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
